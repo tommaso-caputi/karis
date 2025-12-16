@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useState } from "react";
-/* import { toast } from "sonner"; */
+import { toast } from "sonner";
 
 const ContactSection = () => {
     const [formData, setFormData] = useState({
@@ -17,9 +17,9 @@ const ContactSection = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        /* toast.success("Messaggio inviato!", {
+        toast.success("Messaggio inviato!", {
             description: "Ti risponderemo il prima possibile.",
-        }); */
+        });
         setFormData({ name: "", email: "", parish: "", message: "" });
     };
 
