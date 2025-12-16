@@ -103,7 +103,7 @@ const FeatureCard = ({
         className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 shadow-card hover:shadow-glow transition-all duration-300 hover:-translate-y-1"
         style={{ animationDelay: `${delay}ms` }}
     >
-        <div className="w-12 h-12 rounded-xl bg-gradient-warm flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform duration-300">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center text-primary group-hover:text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
             {icon}
         </div>
         <h3 className="font-display text-xl font-semibold text-foreground mb-2">

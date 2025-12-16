@@ -14,10 +14,12 @@ const Navbar = () => {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-warm flex items-center justify-center shadow-soft group-hover:shadow-glow transition-shadow duration-300">
-                            <Heart className="w-5 h-5 text-primary-foreground" />
-                        </div>
-                        <span className="font-display text-2xl font-semibold text-foreground">
+                        <img
+                            src="/favicon.ico"
+                            alt="KARIS logo"
+                            className="w-8 h-8 align-middle"
+                        />
+                        <span className="font-display text-2xl font-semibold text-foreground leading-none align-middle">
                             KARIS
                         </span>
                     </Link>

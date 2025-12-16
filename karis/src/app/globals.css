@@ -186,8 +186,94 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility bg-gradient-hero {
+  background-image: radial-gradient(circle at top left, color-mix(in oklch, var(--primary) 16%, transparent), transparent 55%),
+    radial-gradient(circle at bottom right, color-mix(in oklch, var(--accent) 18%, transparent), transparent 55%);
+  background-color: var(--background);
+}
+
+@utility bg-gradient-warm {
+  background-image: linear-gradient(135deg,
+      color-mix(in oklch, var(--primary) 88%, var(--secondary) 12%),
+      color-mix(in oklch, var(--secondary) 70%, var(--accent) 30%));
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(120deg,
+      color-mix(in oklch, var(--primary) 80%, var(--foreground) 20%),
+      color-mix(in oklch, var(--accent) 70%, var(--primary) 30%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility shadow-card {
+  box-shadow: var(--shadow-sm);
+}
+
+@utility shadow-soft {
+  box-shadow: var(--shadow-xs);
+}
+
+@utility shadow-glow {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 16%, transparent),
+    0 18px 45px -24px color-mix(in oklch, var(--shadow-color) 42%, transparent);
+}
+
+@utility animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@utility animate-fade-up {
+  animation: fade-up 500ms ease-out forwards;
+}
+
+@utility animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+@utility animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+@utility animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+@utility animation-delay-400 {
+  animation-delay: 400ms;
 }
