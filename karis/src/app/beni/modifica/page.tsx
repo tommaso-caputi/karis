@@ -10,7 +10,7 @@ import {
     Save,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +25,7 @@ const categories = [
     { id: "altro" as Category, label: "Altro", icon: Box, color: "gray" },
 ];
 
-const ModificaBene = () => {
+const ModificaBeneContent = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const beneId = searchParams.get("id");
@@ -327,6 +327,23 @@ const ModificaBene = () => {
                 </div>
             </DashboardLayout>
         </>
+    );
+};
+
+const ModificaBene = () => {
+    return (
+        <Suspense fallback={
+            <DashboardLayout
+                title="Modifica Bene"
+                subtitle="Aggiorna le informazioni del bene"
+            >
+                <div className="max-w-2xl mx-auto">
+                    <p className="text-sm text-muted-foreground">Caricamento...</p>
+                </div>
+            </DashboardLayout>
+        }>
+            <ModificaBeneContent />
+        </Suspense>
     );
 };
 
