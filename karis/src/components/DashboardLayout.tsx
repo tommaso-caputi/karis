@@ -12,7 +12,8 @@ import {
     LogOut,
     Menu,
     X,
-    User
+    User,
+    Gift
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -82,6 +83,7 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Package, label: "Beni", path: "/beni" },
+        { icon: Gift, label: "Crea Pacco", path: "/beni/pacco" },
         { icon: User, label: "Beneficiari", path: "/beneficiario" },
         /* { icon: Send, label: "Richieste", path: "/richieste" },
         { icon: Bell, label: "Notifiche", path: "/notifiche", badge: 3 },

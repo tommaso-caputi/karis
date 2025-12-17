@@ -160,6 +160,12 @@ const Beni = () => {
                                 Assegna Bene
                             </Link>
                         </Button>
+                        <Button variant="outline" asChild>
+                            <Link href="/beni/pacco">
+                                <Package className="w-4 h-4" />
+                                Crea Pacco
+                            </Link>
+                        </Button>
                         <Button variant="default" asChild>
                             <Link href="/beni/nuovo">
                                 <Plus className="w-4 h-4" />
