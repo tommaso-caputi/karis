@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 interface BeneApiResponse {
     id: string;
     name: string;
+    description?: string | null;
     category: string | null;
     quantity: number;
     unit: string;
@@ -68,6 +69,7 @@ export async function GET(request: Request) {
             risorsa:risorsa (
                 id,
                 nome,
+                descrizione,
                 unita_misura,
                 categoria:categoria_risorsa (
                     nome
@@ -94,6 +96,7 @@ export async function GET(request: Request) {
         return {
             id: risorsa.id ?? row.id,
             name: risorsa.nome ?? "Senza nome",
+            description: risorsa.descrizione ?? null,
             category: categoria?.nome ?? null,
             quantity: typeof row.quantita === "number" ? row.quantita : 0,
             unit: risorsa.unita_misura ?? "pz",
@@ -257,6 +260,156 @@ export async function POST(request: Request) {
             updated_at: nuovoInventario.updated_at ?? null,
         },
         { status: 201 }
+    );
+}
+
+export async function PUT(request: Request) {
+    if (!supabase) {
+        return NextResponse.json(
+            { error: "Supabase non è configurato sul server." },
+            { status: 500 }
+        );
+    }
+
+    let body: {
+        userId?: string;
+        id?: string;
+        name?: string;
+        category?: string;
+        quantity?: number;
+        unit?: string;
+        description?: string | null;
+    };
+
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json(
+            { error: "Body della richiesta non valido." },
+            { status: 400 }
+        );
+    }
+
+    const { userId, id, name, category, quantity, unit, description } = body;
+
+    if (!userId || !id || !name || !category || typeof quantity !== "number" || Number.isNaN(quantity)) {
+        return NextResponse.json(
+            { error: "Parametri mancanti o non validi." },
+            { status: 400 }
+        );
+    }
+
+    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
+    const { data: utente, error: utenteError } = await supabase
+        .from("utente")
+        .select("id, parrocchia_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (utenteError) {
+        console.error("Errore nel recupero dell'utente (PUT /api/beni):", utenteError);
+        return NextResponse.json(
+            { error: "Errore nel recupero dell'utente." },
+            { status: 500 }
+        );
+    }
+
+    if (!utente || !utente.parrocchia_id) {
+        return NextResponse.json(
+            { error: "Utente o parrocchia associata non trovati." },
+            { status: 404 }
+        );
+    }
+
+    const parrocchiaId = utente.parrocchia_id as string;
+
+    // 2. Recupero o creazione della categoria_risorsa
+    const categoriaNome = category;
+
+    let categoriaId: string | null = null;
+
+    const { data: categoriaEsistente, error: categoriaSelectError } = await supabase
+        .from("categoria_risorsa")
+        .select("id, nome")
+        .ilike("nome", categoriaNome)
+        .maybeSingle();
+
+    if (categoriaSelectError) {
+        console.error("Errore nel recupero della categoria_risorsa (PUT):", categoriaSelectError);
+        return NextResponse.json(
+            { error: "Errore nel recupero della categoria." },
+            { status: 500 }
+        );
+    }
+
+    if (categoriaEsistente) {
+        categoriaId = categoriaEsistente.id as string;
+    } else {
+        const { data: nuovaCategoria, error: categoriaInsertError } = await supabase
+            .from("categoria_risorsa")
+            .insert({
+                nome: categoriaNome,
+            })
+            .select("id")
+            .maybeSingle();
+
+        if (categoriaInsertError || !nuovaCategoria) {
+            console.error("Errore nella creazione della categoria_risorsa (PUT):", categoriaInsertError);
+            return NextResponse.json(
+                { error: "Errore nella creazione della categoria." },
+                { status: 500 }
+            );
+        }
+
+        categoriaId = nuovaCategoria.id as string;
+    }
+
+    // 3. Aggiornamento della risorsa (verificando che appartenga alla stessa parrocchia)
+    const { error: risorsaUpdateError } = await supabase
+        .from("risorsa")
+        .update({
+            nome: name,
+            descrizione: description ?? null,
+            unita_misura: unit ?? "pz",
+            categoria_id: categoriaId,
+        })
+        .eq("id", id)
+        .eq("parrocchia_id", parrocchiaId);
+
+    if (risorsaUpdateError) {
+        console.error("Errore nell'aggiornamento della risorsa:", risorsaUpdateError);
+        return NextResponse.json(
+            { error: "Errore nell'aggiornamento della risorsa." },
+            { status: 500 }
+        );
+    }
+
+    // 4. Aggiornamento della quantità in inventario_parrocchia
+    const { error: inventarioUpdateError } = await supabase
+        .from("inventario_parrocchia")
+        .update({
+            quantita: quantity,
+        })
+        .eq("risorsa_id", id)
+        .eq("parrocchia_id", parrocchiaId);
+
+    if (inventarioUpdateError) {
+        console.error("Errore nell'aggiornamento dell'inventario_parrocchia:", inventarioUpdateError);
+        return NextResponse.json(
+            { error: "Errore nell'aggiornamento dell'inventario." },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json(
+        {
+            id,
+            name,
+            category: categoriaNome,
+            quantity,
+            unit: unit ?? "pz",
+        },
+        { status: 200 }
     );
 }
 
