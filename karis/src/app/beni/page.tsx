@@ -276,7 +276,27 @@ const Beni = () => {
                     {/* Table Body */}
                     <div className="divide-y divide-border">
                         {filteredBeni.map((bene) => (
-                            <BeneRow key={bene.id} bene={bene} />
+                            <BeneRow 
+                                key={bene.id} 
+                                bene={bene}
+                                onDelete={async () => {
+                                    const {
+                                        data: { user },
+                                    } = await supabase.auth.getUser();
+                                    if (!user) return;
+                                    
+                                    const res = await fetch(`/api/beni?userId=${user.id}&id=${bene.id}`, {
+                                        method: 'DELETE',
+                                    });
+                                    
+                                    if (res.ok) {
+                                        setBeni(beni.filter(b => b.id !== bene.id));
+                                    } else {
+                                        const error = await res.json();
+                                        alert(error.error || "Errore nell'eliminazione del bene.");
+                                    }
+                                }}
+                            />
                         ))}
                     </div>
 
@@ -299,7 +319,7 @@ const Beni = () => {
     );
 };
 
-const BeneRow = ({ bene }: { bene: Bene }) => {
+const BeneRow = ({ bene, onDelete }: { bene: Bene; onDelete: () => Promise<void> }) => {
     const Icon = categoryIcons[bene.category as keyof typeof categoryIcons] || Box;
 
     return (
@@ -356,7 +376,15 @@ const BeneRow = ({ bene }: { bene: Bene }) => {
                                 Modifica
                             </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (window.confirm(`Sei sicuro di voler eliminare il bene "${bene.name}"?`)) {
+                                    void onDelete();
+                                }
+                            }}
+                        >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Elimina
                         </DropdownMenuItem>

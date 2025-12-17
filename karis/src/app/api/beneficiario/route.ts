@@ -440,3 +440,112 @@ export async function PUT(request: Request) {
     );
 }
 
+export async function DELETE(request: Request) {
+    if (!supabase) {
+        return NextResponse.json(
+            { error: "Supabase non è configurato sul server." },
+            { status: 500 }
+        );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const id = searchParams.get("id");
+
+    if (!userId || !id) {
+        return NextResponse.json(
+            { error: "Parametri mancanti: userId e id sono obbligatori." },
+            { status: 400 }
+        );
+    }
+
+    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
+    const { data: utente, error: utenteError } = await supabase
+        .from("utente")
+        .select("id, parrocchia_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (utenteError) {
+        console.error("Errore nel recupero dell'utente (DELETE /api/beneficiario):", utenteError);
+        return NextResponse.json(
+            { error: "Errore nel recupero dell'utente." },
+            { status: 500 }
+        );
+    }
+
+    if (!utente || !utente.parrocchia_id) {
+        return NextResponse.json(
+            { error: "Utente o parrocchia associata non trovati." },
+            { status: 404 }
+        );
+    }
+
+    const parrocchiaId = utente.parrocchia_id as string;
+
+    // 2. Verifica che il beneficiario esista e appartenga alla stessa parrocchia
+    const { data: beneficiarioEsistente, error: beneficiarioSelectError } = await supabase
+        .from("beneficiario")
+        .select("id")
+        .eq("id", id)
+        .eq("parrocchia_id", parrocchiaId)
+        .maybeSingle();
+
+    if (beneficiarioSelectError) {
+        console.error("Errore nel recupero del beneficiario:", beneficiarioSelectError);
+        return NextResponse.json(
+            { error: "Errore nel recupero del beneficiario." },
+            { status: 500 }
+        );
+    }
+
+    if (!beneficiarioEsistente) {
+        return NextResponse.json(
+            { error: "Beneficiario non trovato o non appartiene alla tua parrocchia." },
+            { status: 404 }
+        );
+    }
+
+    // 3. Verifica se ci sono richieste associate al beneficiario
+    const { data: richieste, error: richiesteError } = await supabase
+        .from("richiesta")
+        .select("id")
+        .eq("beneficiario_id", id)
+        .limit(1);
+
+    if (richiesteError) {
+        console.error("Errore nel controllo delle richieste:", richiesteError);
+        return NextResponse.json(
+            { error: "Errore nel controllo delle dipendenze." },
+            { status: 500 }
+        );
+    }
+
+    if (richieste && richieste.length > 0) {
+        return NextResponse.json(
+            { error: "Impossibile eliminare il beneficiario: ci sono richieste associate." },
+            { status: 409 }
+        );
+    }
+
+    // 4. Eliminazione del beneficiario
+    const { error: beneficiarioDeleteError } = await supabase
+        .from("beneficiario")
+        .delete()
+        .eq("id", id)
+        .eq("parrocchia_id", parrocchiaId);
+
+    if (beneficiarioDeleteError) {
+        console.error("Errore nell'eliminazione del beneficiario:", beneficiarioDeleteError);
+        return NextResponse.json(
+            { error: "Errore nell'eliminazione del beneficiario." },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json(
+        { message: "Beneficiario eliminato con successo." },
+        { status: 200 }
+    );
+}
+

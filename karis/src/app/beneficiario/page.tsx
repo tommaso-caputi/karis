@@ -222,7 +222,27 @@ const Beneficiario = () => {
                             </div>
                         ) : (
                             filteredBeneficiari.map((beneficiario) => (
-                                <BeneficiarioRow key={beneficiario.id} beneficiario={beneficiario} />
+                                <BeneficiarioRow 
+                                    key={beneficiario.id} 
+                                    beneficiario={beneficiario}
+                                    onDelete={async () => {
+                                        const {
+                                            data: { user },
+                                        } = await supabase.auth.getUser();
+                                        if (!user) return;
+                                        
+                                        const res = await fetch(`/api/beneficiario?userId=${user.id}&id=${beneficiario.id}`, {
+                                            method: 'DELETE',
+                                        });
+                                        
+                                        if (res.ok) {
+                                            setBeneficiari(beneficiari.filter(b => b.id !== beneficiario.id));
+                                        } else {
+                                            const error = await res.json();
+                                            alert(error.error || "Errore nell'eliminazione del beneficiario.");
+                                        }
+                                    }}
+                                />
                             ))
                         )}
                     </div>
@@ -285,9 +305,46 @@ const Beneficiario = () => {
                                                     </p>
                                                 )}
                                             </div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {famiglia.beneficiari.length}{" "}
-                                                {famiglia.beneficiari.length === 1 ? "beneficiario" : "beneficiari"}
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-sm text-muted-foreground">
+                                                    {famiglia.beneficiari.length}{" "}
+                                                    {famiglia.beneficiari.length === 1 ? "beneficiario" : "beneficiari"}
+                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                                            <MoreVertical className="w-4 h-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem 
+                                                            className="text-destructive"
+                                                            onClick={async (e) => {
+                                                                e.preventDefault();
+                                                                if (window.confirm(`Sei sicuro di voler eliminare la famiglia "${famiglia.cognome}"?`)) {
+                                                                    const {
+                                                                        data: { user },
+                                                                    } = await supabase.auth.getUser();
+                                                                    if (!user) return;
+                                                                    
+                                                                    const res = await fetch(`/api/famiglia?userId=${user.id}&id=${famiglia.id}`, {
+                                                                        method: 'DELETE',
+                                                                    });
+                                                                    
+                                                                    if (res.ok) {
+                                                                        setFamiglie(famiglie.filter(f => f.id !== famiglia.id));
+                                                                    } else {
+                                                                        const error = await res.json();
+                                                                        alert(error.error || "Errore nell'eliminazione della famiglia.");
+                                                                    }
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 className="w-4 h-4 mr-2" />
+                                                            Elimina
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </div>
                                     </div>
@@ -337,7 +394,7 @@ const Beneficiario = () => {
     );
 };
 
-const BeneficiarioRow = ({ beneficiario }: { beneficiario: Beneficiario }) => {
+const BeneficiarioRow = ({ beneficiario, onDelete }: { beneficiario: Beneficiario; onDelete: () => Promise<void> }) => {
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "-";
         try {
@@ -416,7 +473,15 @@ const BeneficiarioRow = ({ beneficiario }: { beneficiario: Beneficiario }) => {
                                 Modifica
                             </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (window.confirm(`Sei sicuro di voler eliminare il beneficiario ${beneficiario.nome} ${beneficiario.cognome}?`)) {
+                                    void onDelete();
+                                }
+                            }}
+                        >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Elimina
                         </DropdownMenuItem>

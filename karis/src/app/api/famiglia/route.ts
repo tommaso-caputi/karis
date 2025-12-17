@@ -268,3 +268,133 @@ export async function POST(request: Request) {
     );
 }
 
+export async function DELETE(request: Request) {
+    if (!supabase) {
+        return NextResponse.json(
+            { error: "Supabase non è configurato sul server." },
+            { status: 500 }
+        );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const id = searchParams.get("id");
+
+    if (!userId || !id) {
+        return NextResponse.json(
+            { error: "Parametri mancanti: userId e id sono obbligatori." },
+            { status: 400 }
+        );
+    }
+
+    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
+    const { data: utente, error: utenteError } = await supabase
+        .from("utente")
+        .select("id, parrocchia_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (utenteError) {
+        console.error("Errore nel recupero dell'utente (DELETE /api/famiglia):", utenteError);
+        return NextResponse.json(
+            { error: "Errore nel recupero dell'utente." },
+            { status: 500 }
+        );
+    }
+
+    if (!utente || !utente.parrocchia_id) {
+        return NextResponse.json(
+            { error: "Utente o parrocchia associata non trovati." },
+            { status: 404 }
+        );
+    }
+
+    const parrocchiaId = utente.parrocchia_id as string;
+
+    // 2. Verifica che la famiglia esista
+    const { data: famigliaEsistente, error: famigliaSelectError } = await supabase
+        .from("famiglia")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (famigliaSelectError) {
+        console.error("Errore nel recupero della famiglia:", famigliaSelectError);
+        return NextResponse.json(
+            { error: "Errore nel recupero della famiglia." },
+            { status: 500 }
+        );
+    }
+
+    if (!famigliaEsistente) {
+        return NextResponse.json(
+            { error: "Famiglia non trovata." },
+            { status: 404 }
+        );
+    }
+
+    // 3. Verifica se ci sono beneficiari associati alla famiglia nella parrocchia dell'utente
+    const { data: beneficiari, error: beneficiariError } = await supabase
+        .from("beneficiario")
+        .select("id")
+        .eq("famiglia_id", id)
+        .eq("parrocchia_id", parrocchiaId)
+        .limit(1);
+
+    if (beneficiariError) {
+        console.error("Errore nel controllo dei beneficiari:", beneficiariError);
+        return NextResponse.json(
+            { error: "Errore nel controllo delle dipendenze." },
+            { status: 500 }
+        );
+    }
+
+    if (beneficiari && beneficiari.length > 0) {
+        return NextResponse.json(
+            { error: "Impossibile eliminare la famiglia: ci sono beneficiari associati nella tua parrocchia." },
+            { status: 409 }
+        );
+    }
+
+    // 4. Verifica se ci sono beneficiari associati alla famiglia in altre parrocchie
+    const { data: beneficiariAltreParrocchie, error: beneficiariAltreParrocchieError } = await supabase
+        .from("beneficiario")
+        .select("id")
+        .eq("famiglia_id", id)
+        .limit(1);
+
+    if (beneficiariAltreParrocchieError) {
+        console.error("Errore nel controllo dei beneficiari in altre parrocchie:", beneficiariAltreParrocchieError);
+        return NextResponse.json(
+            { error: "Errore nel controllo delle dipendenze." },
+            { status: 500 }
+        );
+    }
+
+    if (beneficiariAltreParrocchie && beneficiariAltreParrocchie.length > 0) {
+        return NextResponse.json(
+            { error: "Impossibile eliminare la famiglia: ci sono beneficiari associati in altre parrocchie." },
+            { status: 409 }
+        );
+    }
+
+    // 5. Eliminazione della famiglia
+    const { error: famigliaDeleteError } = await supabase
+        .from("famiglia")
+        .delete()
+        .eq("id", id);
+
+    if (famigliaDeleteError) {
+        console.error("Errore nell'eliminazione della famiglia:", famigliaDeleteError);
+        return NextResponse.json(
+            { error: "Errore nell'eliminazione della famiglia." },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json(
+        { message: "Famiglia eliminata con successo." },
+        { status: 200 }
+    );
+}
+
