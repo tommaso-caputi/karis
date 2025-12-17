@@ -89,16 +89,39 @@ export async function GET(request: Request) {
 
     const DEFAULT_THRESHOLD = 10;
 
+    // 3. Recupera le assegnazioni per calcolare le quantità disponibili
+    const risorsaIds = (inventario ?? []).map((row: any) => row.risorsa?.id).filter(Boolean);
+    
+    let assegnazioniPerRisorsa: Map<string, number> = new Map();
+    
+    if (risorsaIds.length > 0) {
+        const { data: assegnazioni, error: assegnazioniError } = await supabase
+            .from("assegnazione_bene")
+            .select("risorsa_id, quantita")
+            .in("risorsa_id", risorsaIds);
+
+        if (!assegnazioniError && assegnazioni) {
+            assegnazioni.forEach((a: any) => {
+                const current = assegnazioniPerRisorsa.get(a.risorsa_id) ?? 0;
+                assegnazioniPerRisorsa.set(a.risorsa_id, current + (a.quantita ?? 0));
+            });
+        }
+    }
+
     const beni: BeneApiResponse[] = (inventario ?? []).map((row: any) => {
         const risorsa = row.risorsa ?? {};
         const categoria = risorsa.categoria ?? null;
+        const risorsaId = risorsa.id ?? row.id;
+        const quantitaTotale = typeof row.quantita === "number" ? row.quantita : 0;
+        const quantitaAssegnata = assegnazioniPerRisorsa.get(risorsaId) ?? 0;
+        const quantitaDisponibile = Math.max(0, quantitaTotale - quantitaAssegnata);
 
         return {
-            id: risorsa.id ?? row.id,
+            id: risorsaId,
             name: risorsa.nome ?? "Senza nome",
             description: risorsa.descrizione ?? null,
             category: categoria?.nome ?? null,
-            quantity: typeof row.quantita === "number" ? row.quantita : 0,
+            quantity: quantitaDisponibile, // Mostra solo la quantità disponibile
             unit: risorsa.unita_misura ?? "pz",
             updated_at: row.updated_at ?? null,
             threshold: DEFAULT_THRESHOLD,

@@ -13,7 +13,8 @@ import {
     Apple,
     Shirt,
     Pill,
-    Box
+    Box,
+    Gift
 } from "lucide-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -152,12 +153,20 @@ const Beni = () => {
                         : `${stats.total} beni totali`
                 }
                 actions={
-                    <Button variant="default" asChild>
-                        <Link href="/beni/nuovo">
-                            <Plus className="w-4 h-4" />
-                            Nuovo Bene
-                        </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" asChild>
+                            <Link href="/beni/assegna">
+                                <Gift className="w-4 h-4" />
+                                Assegna Bene
+                            </Link>
+                        </Button>
+                        <Button variant="default" asChild>
+                            <Link href="/beni/nuovo">
+                                <Plus className="w-4 h-4" />
+                                Nuovo Bene
+                            </Link>
+                        </Button>
+                    </div>
                 }
             >
                 {/* Category Stats */}
@@ -354,6 +363,18 @@ const BeneRow = ({ bene, onDelete }: { bene: Bene; onDelete: () => Promise<void>
 
             {/* Actions */}
             <div className="col-span-1 lg:col-span-2 flex items-center justify-end gap-2">
+                {bene.quantity > 0 && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        asChild
+                    >
+                        <Link href={`/beni/assegna?beneId=${bene.id}`}>
+                            <Gift className="w-4 h-4" />
+                        </Link>
+                    </Button>
+                )}
                 <Button
                     variant="ghost"
                     size="icon"
@@ -371,6 +392,14 @@ const BeneRow = ({ bene, onDelete }: { bene: Bene; onDelete: () => Promise<void>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                        {bene.quantity > 0 && (
+                            <DropdownMenuItem asChild>
+                                <Link href={`/beni/assegna?beneId=${bene.id}`} className="flex items-center">
+                                    <Gift className="w-4 h-4 mr-2" />
+                                    Assegna
+                                </Link>
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                             <Link href={`/beni/modifica?id=${bene.id}`} className="flex items-center">
                                 <Edit2 className="w-4 h-4 mr-2" />

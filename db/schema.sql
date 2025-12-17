@@ -1,6 +1,19 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.assegnazione_bene (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  risorsa_id uuid NOT NULL,
+  beneficiario_id uuid,
+  famiglia_id uuid,
+  quantita integer NOT NULL,
+  data_assegnazione timestamp with time zone DEFAULT now(),
+  note text,
+  CONSTRAINT assegnazione_bene_pkey PRIMARY KEY (id),
+  CONSTRAINT assegnazione_bene_risorsa_id_fkey FOREIGN KEY (risorsa_id) REFERENCES public.risorsa(id),
+  CONSTRAINT assegnazione_bene_beneficiario_id_fkey FOREIGN KEY (beneficiario_id) REFERENCES public.beneficiario(id),
+  CONSTRAINT assegnazione_bene_famiglia_id_fkey FOREIGN KEY (famiglia_id) REFERENCES public.famiglia(id)
+);
 CREATE TABLE public.beneficiario (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   nome text NOT NULL,
