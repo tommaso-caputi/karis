@@ -130,17 +130,24 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
 
                 {/* Navigation */}
                 <nav className="space-y-2 flex-1">
-                    {navItems.map((item) => (
-                        <NavItem
-                            key={item.path}
-                            icon={<item.icon className="w-5 h-5" />}
-                            label={item.label}
-                            path={item.path}
-                            active={pathname === item.path || pathname.startsWith(item.path + "/")}
-                            /* badge={item.badge} */
-                            onClick={() => setSidebarOpen(false)}
-                        />
-                    ))}
+                    {navItems.map((item) => {
+                        // Logica speciale per "Beni": non deve essere attivo quando siamo su "/beni/pacco"
+                        let isActive = pathname === item.path || pathname.startsWith(item.path + "/");
+                        if (item.path === "/beni" && pathname === "/beni/pacco") {
+                            isActive = false;
+                        }
+                        return (
+                            <NavItem
+                                key={item.path}
+                                icon={<item.icon className="w-5 h-5" />}
+                                label={item.label}
+                                path={item.path}
+                                active={isActive}
+                                /* badge={item.badge} */
+                                onClick={() => setSidebarOpen(false)}
+                            />
+                        );
+                    })}
                 </nav>
 
                 {/* User Section */}
