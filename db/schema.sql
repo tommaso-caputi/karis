@@ -72,8 +72,10 @@ CREATE TABLE public.risorsa (
   descrizione text,
   unita_misura text DEFAULT 'pz'::text,
   categoria_id uuid,
+  parrocchia_id uuid,
   CONSTRAINT risorsa_pkey PRIMARY KEY (id),
-  CONSTRAINT risorsa_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categoria_risorsa(id)
+  CONSTRAINT risorsa_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categoria_risorsa(id),
+  CONSTRAINT risorsa_parrocchia_id_fkey FOREIGN KEY (parrocchia_id) REFERENCES public.parrocchia(id)
 );
 CREATE TABLE public.tipo_utente (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

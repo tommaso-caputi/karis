@@ -45,17 +45,17 @@ const ContactSection = () => {
                             <ContactInfo
                                 icon={<Mail className="w-5 h-5" />}
                                 label="Email"
-                                value="info@karis.caritas.it"
+                                value="da modificare"
                             />
                             <ContactInfo
                                 icon={<Phone className="w-5 h-5" />}
                                 label="Telefono"
-                                value="+39 06 1234567"
+                                value="da modificare"
                             />
                             <ContactInfo
                                 icon={<MapPin className="w-5 h-5" />}
                                 label="Sede"
-                                value="Via della Carità, 1 - Roma"
+                                value="da modificare"
                             />
                         </div>
                     </div>
@@ -72,7 +72,7 @@ const ContactSection = () => {
                                 </label>
                                 <Input
                                     type="text"
-                                    placeholder="Mario Rossi"
+                                    placeholder=""
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
@@ -84,7 +84,7 @@ const ContactSection = () => {
                                 </label>
                                 <Input
                                     type="email"
-                                    placeholder="mario.rossi@email.com"
+                                    placeholder=""
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     required
@@ -96,7 +96,7 @@ const ContactSection = () => {
                                 </label>
                                 <Input
                                     type="text"
-                                    placeholder="Parrocchia San Giovanni"
+                                    placeholder=""
                                     value={formData.parish}
                                     onChange={(e) => setFormData({ ...formData, parish: e.target.value })}
                                 />

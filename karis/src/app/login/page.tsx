@@ -139,7 +139,7 @@ const Login = () => {
                             Bentornato
                         </h1>
                         <p className="text-muted-foreground text-center mb-8">
-                            Accedi per gestire le risorse della tua parrocchia
+                            Accedi per gestire i beni della tua parrocchia
                         </p>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
@@ -149,7 +149,7 @@ const Login = () => {
                                 </label>
                                 <Input
                                     type="email"
-                                    placeholder="mario.rossi@parrocchia.it"
+                                    placeholder=""
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     disabled={isSubmitting}
@@ -162,7 +162,7 @@ const Login = () => {
                                 </label>
                                 <Input
                                     type="password"
-                                    placeholder="••••••••"
+                                    placeholder=""
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     disabled={isSubmitting}
