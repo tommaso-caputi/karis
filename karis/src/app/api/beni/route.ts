@@ -89,16 +89,39 @@ export async function GET(request: Request) {
 
     const DEFAULT_THRESHOLD = 10;
 
+    // 3. Recupera le assegnazioni per calcolare le quantità disponibili
+    const risorsaIds = (inventario ?? []).map((row: any) => row.risorsa?.id).filter(Boolean);
+    
+    let assegnazioniPerRisorsa: Map<string, number> = new Map();
+    
+    if (risorsaIds.length > 0) {
+        const { data: assegnazioni, error: assegnazioniError } = await supabase
+            .from("assegnazione_bene")
+            .select("risorsa_id, quantita")
+            .in("risorsa_id", risorsaIds);
+
+        if (!assegnazioniError && assegnazioni) {
+            assegnazioni.forEach((a: any) => {
+                const current = assegnazioniPerRisorsa.get(a.risorsa_id) ?? 0;
+                assegnazioniPerRisorsa.set(a.risorsa_id, current + (a.quantita ?? 0));
+            });
+        }
+    }
+
     const beni: BeneApiResponse[] = (inventario ?? []).map((row: any) => {
         const risorsa = row.risorsa ?? {};
         const categoria = risorsa.categoria ?? null;
+        const risorsaId = risorsa.id ?? row.id;
+        const quantitaTotale = typeof row.quantita === "number" ? row.quantita : 0;
+        const quantitaAssegnata = assegnazioniPerRisorsa.get(risorsaId) ?? 0;
+        const quantitaDisponibile = Math.max(0, quantitaTotale - quantitaAssegnata);
 
         return {
-            id: risorsa.id ?? row.id,
+            id: risorsaId,
             name: risorsa.nome ?? "Senza nome",
             description: risorsa.descrizione ?? null,
             category: categoria?.nome ?? null,
-            quantity: typeof row.quantita === "number" ? row.quantita : 0,
+            quantity: quantitaDisponibile, // Mostra solo la quantità disponibile
             unit: risorsa.unita_misura ?? "pz",
             updated_at: row.updated_at ?? null,
             threshold: DEFAULT_THRESHOLD,
@@ -409,6 +432,130 @@ export async function PUT(request: Request) {
             quantity,
             unit: unit ?? "pz",
         },
+        { status: 200 }
+    );
+}
+
+export async function DELETE(request: Request) {
+    if (!supabase) {
+        return NextResponse.json(
+            { error: "Supabase non è configurato sul server." },
+            { status: 500 }
+        );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const id = searchParams.get("id");
+
+    if (!userId || !id) {
+        return NextResponse.json(
+            { error: "Parametri mancanti: userId e id sono obbligatori." },
+            { status: 400 }
+        );
+    }
+
+    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
+    const { data: utente, error: utenteError } = await supabase
+        .from("utente")
+        .select("id, parrocchia_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (utenteError) {
+        console.error("Errore nel recupero dell'utente (DELETE /api/beni):", utenteError);
+        return NextResponse.json(
+            { error: "Errore nel recupero dell'utente." },
+            { status: 500 }
+        );
+    }
+
+    if (!utente || !utente.parrocchia_id) {
+        return NextResponse.json(
+            { error: "Utente o parrocchia associata non trovati." },
+            { status: 404 }
+        );
+    }
+
+    const parrocchiaId = utente.parrocchia_id as string;
+
+    // 2. Verifica che la risorsa esista e appartenga alla stessa parrocchia
+    const { data: risorsaEsistente, error: risorsaSelectError } = await supabase
+        .from("risorsa")
+        .select("id")
+        .eq("id", id)
+        .eq("parrocchia_id", parrocchiaId)
+        .maybeSingle();
+
+    if (risorsaSelectError) {
+        console.error("Errore nel recupero della risorsa:", risorsaSelectError);
+        return NextResponse.json(
+            { error: "Errore nel recupero della risorsa." },
+            { status: 500 }
+        );
+    }
+
+    if (!risorsaEsistente) {
+        return NextResponse.json(
+            { error: "Bene non trovato o non appartiene alla tua parrocchia." },
+            { status: 404 }
+        );
+    }
+
+    // 3. Verifica se ci sono richieste associate alla risorsa
+    const { data: richiesteRisorse, error: richiesteRisorseError } = await supabase
+        .from("richiesta_risorse")
+        .select("id")
+        .eq("risorsa_id", id)
+        .limit(1);
+
+    if (richiesteRisorseError) {
+        console.error("Errore nel controllo delle richieste risorse:", richiesteRisorseError);
+        return NextResponse.json(
+            { error: "Errore nel controllo delle dipendenze." },
+            { status: 500 }
+        );
+    }
+
+    if (richiesteRisorse && richiesteRisorse.length > 0) {
+        return NextResponse.json(
+            { error: "Impossibile eliminare il bene: ci sono richieste associate." },
+            { status: 409 }
+        );
+    }
+
+    // 4. Eliminazione dalla tabella inventario_parrocchia
+    const { error: inventarioDeleteError } = await supabase
+        .from("inventario_parrocchia")
+        .delete()
+        .eq("risorsa_id", id)
+        .eq("parrocchia_id", parrocchiaId);
+
+    if (inventarioDeleteError) {
+        console.error("Errore nell'eliminazione dall'inventario:", inventarioDeleteError);
+        return NextResponse.json(
+            { error: "Errore nell'eliminazione dall'inventario." },
+            { status: 500 }
+        );
+    }
+
+    // 5. Eliminazione della risorsa
+    const { error: risorsaDeleteError } = await supabase
+        .from("risorsa")
+        .delete()
+        .eq("id", id)
+        .eq("parrocchia_id", parrocchiaId);
+
+    if (risorsaDeleteError) {
+        console.error("Errore nell'eliminazione della risorsa:", risorsaDeleteError);
+        return NextResponse.json(
+            { error: "Errore nell'eliminazione del bene." },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json(
+        { message: "Bene eliminato con successo." },
         { status: 200 }
     );
 }

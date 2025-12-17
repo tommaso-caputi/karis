@@ -13,7 +13,8 @@ import {
     Apple,
     Shirt,
     Pill,
-    Box
+    Box,
+    Gift
 } from "lucide-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -152,12 +153,26 @@ const Beni = () => {
                         : `${stats.total} beni totali`
                 }
                 actions={
-                    <Button variant="default" asChild>
-                        <Link href="/beni/nuovo">
-                            <Plus className="w-4 h-4" />
-                            Nuovo Bene
-                        </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" asChild>
+                            <Link href="/beni/assegna">
+                                <Gift className="w-4 h-4" />
+                                Assegna Bene
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href="/beni/pacco">
+                                <Package className="w-4 h-4" />
+                                Crea Pacco
+                            </Link>
+                        </Button>
+                        <Button variant="default" asChild>
+                            <Link href="/beni/nuovo">
+                                <Plus className="w-4 h-4" />
+                                Nuovo Bene
+                            </Link>
+                        </Button>
+                    </div>
                 }
             >
                 {/* Category Stats */}
@@ -276,7 +291,28 @@ const Beni = () => {
                     {/* Table Body */}
                     <div className="divide-y divide-border">
                         {filteredBeni.map((bene) => (
-                            <BeneRow key={bene.id} bene={bene} />
+                            <BeneRow 
+                                key={bene.id} 
+                                bene={bene}
+                                onDelete={async () => {
+                                    if (!supabase) return;
+                                    const {
+                                        data: { user },
+                                    } = await supabase.auth.getUser();
+                                    if (!user) return;
+                                    
+                                    const res = await fetch(`/api/beni?userId=${user.id}&id=${bene.id}`, {
+                                        method: 'DELETE',
+                                    });
+                                    
+                                    if (res.ok) {
+                                        setBeni(beni.filter(b => b.id !== bene.id));
+                                    } else {
+                                        const error = await res.json();
+                                        alert(error.error || "Errore nell'eliminazione del bene.");
+                                    }
+                                }}
+                            />
                         ))}
                     </div>
 
@@ -299,7 +335,7 @@ const Beni = () => {
     );
 };
 
-const BeneRow = ({ bene }: { bene: Bene }) => {
+const BeneRow = ({ bene, onDelete }: { bene: Bene; onDelete: () => Promise<void> }) => {
     const Icon = categoryIcons[bene.category as keyof typeof categoryIcons] || Box;
 
     return (
@@ -333,6 +369,18 @@ const BeneRow = ({ bene }: { bene: Bene }) => {
 
             {/* Actions */}
             <div className="col-span-1 lg:col-span-2 flex items-center justify-end gap-2">
+                {bene.quantity > 0 && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        asChild
+                    >
+                        <Link href={`/beni/assegna?beneId=${bene.id}`}>
+                            <Gift className="w-4 h-4" />
+                        </Link>
+                    </Button>
+                )}
                 <Button
                     variant="ghost"
                     size="icon"
@@ -350,13 +398,29 @@ const BeneRow = ({ bene }: { bene: Bene }) => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                        {bene.quantity > 0 && (
+                            <DropdownMenuItem asChild>
+                                <Link href={`/beni/assegna?beneId=${bene.id}`} className="flex items-center">
+                                    <Gift className="w-4 h-4 mr-2" />
+                                    Assegna
+                                </Link>
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                             <Link href={`/beni/modifica?id=${bene.id}`} className="flex items-center">
                                 <Edit2 className="w-4 h-4 mr-2" />
                                 Modifica
                             </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (window.confirm(`Sei sicuro di voler eliminare il bene "${bene.name}"?`)) {
+                                    void onDelete();
+                                }
+                            }}
+                        >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Elimina
                         </DropdownMenuItem>
