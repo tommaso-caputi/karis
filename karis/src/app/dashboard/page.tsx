@@ -143,14 +143,6 @@ const Dashboard = () => {
             <DashboardLayout
                 title={userData ? `Ciao, ${userData.nome} ${userData.cognome}` : "Dashboard"}
                 subtitle={subtitle}
-                actions={
-                    <Button variant="default" asChild>
-                        <Link href="/beni/nuovo">
-                            <Plus className="w-4 h-4" />
-                            Nuovo Bene
-                        </Link>
-                    </Button>
-                }
             >
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
