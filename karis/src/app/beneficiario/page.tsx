@@ -29,6 +29,7 @@ interface Beneficiario {
     data_nascita: string | null;
     luogo_nascita: string | null;
     famiglia: string | null;
+    famiglia_id: string | null;
     created_at: string;
 }
 
@@ -297,9 +298,12 @@ const Beneficiario = () => {
                                     <div className="px-6 py-4 bg-secondary/50 border-b border-border">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h3 className="font-semibold text-foreground text-lg">
+                                                <Link 
+                                                    href={`/famiglia/${famiglia.id}`}
+                                                    className="font-semibold text-foreground text-lg hover:text-primary transition-colors block"
+                                                >
                                                     Famiglia {famiglia.cognome}
-                                                </h3>
+                                                </Link>
                                                 {famiglia.note && (
                                                     <p className="text-sm text-muted-foreground mt-1">
                                                         {famiglia.note}
@@ -318,6 +322,12 @@ const Beneficiario = () => {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/famiglia/${famiglia.id}`} className="flex items-center">
+                                                                <Users className="w-4 h-4 mr-2" />
+                                                                Vedi Dettagli
+                                                            </Link>
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem asChild>
                                                             <Link href={`/famiglia/modifica?id=${famiglia.id}`} className="flex items-center">
                                                                 <Edit2 className="w-4 h-4 mr-2" />
@@ -368,9 +378,12 @@ const Beneficiario = () => {
                                                             <User className="w-4 h-4 text-primary" />
                                                         </div>
                                                         <div>
-                                                            <div className="font-medium text-foreground">
+                                                            <Link 
+                                                                href={`/beneficiario/${beneficiario.id}`}
+                                                                className="font-medium text-foreground hover:text-primary transition-colors block"
+                                                            >
                                                                 {beneficiario.nome} {beneficiario.cognome}
-                                                            </div>
+                                                            </Link>
                                                             {beneficiario.cf && (
                                                                 <div className="text-sm text-muted-foreground font-mono">
                                                                     CF: {beneficiario.cf}
@@ -384,8 +397,8 @@ const Beneficiario = () => {
                                                         className="text-muted-foreground hover:text-foreground"
                                                         asChild
                                                     >
-                                                        <Link href={`/beneficiario/modifica?id=${beneficiario.id}`}>
-                                                            <Edit2 className="w-4 h-4" />
+                                                        <Link href={`/beneficiario/${beneficiario.id}`}>
+                                                            <User className="w-4 h-4" />
                                                         </Link>
                                                     </Button>
                                                 </div>
@@ -425,14 +438,18 @@ const BeneficiarioRow = ({ beneficiario, onDelete }: { beneficiario: Beneficiari
                     <User className="w-5 h-5 text-primary" />
                 </div>
                 <div className="min-w-0">
-                    <div className="font-medium text-foreground truncate">{beneficiario.nome}</div>
+                    <Link href={`/beneficiario/${beneficiario.id}`} className="font-medium text-foreground truncate hover:text-primary transition-colors block">
+                        {beneficiario.nome}
+                    </Link>
                     <div className="text-sm text-muted-foreground lg:hidden">{beneficiario.cognome}</div>
                 </div>
             </div>
 
             {/* Cognome */}
             <div className="hidden lg:flex col-span-2 items-center">
-                <span className="text-foreground">{beneficiario.cognome}</span>
+                <Link href={`/beneficiario/${beneficiario.id}`} className="text-foreground hover:text-primary transition-colors">
+                    {beneficiario.cognome}
+                </Link>
             </div>
 
             {/* Codice Fiscale */}
@@ -451,9 +468,16 @@ const BeneficiarioRow = ({ beneficiario, onDelete }: { beneficiario: Beneficiari
 
             {/* Famiglia */}
             <div className="col-span-1 lg:col-span-2 flex items-center">
-                <span className="text-foreground text-sm">
-                    {beneficiario.famiglia || "-"}
-                </span>
+                {beneficiario.famiglia ? (
+                    <Link 
+                        href={`/famiglia/${beneficiario.famiglia_id}`} 
+                        className="text-foreground text-sm hover:text-primary transition-colors"
+                    >
+                        {beneficiario.famiglia}
+                    </Link>
+                ) : (
+                    <span className="text-foreground text-sm">-</span>
+                )}
             </div>
 
             {/* Actions */}
@@ -475,6 +499,12 @@ const BeneficiarioRow = ({ beneficiario, onDelete }: { beneficiario: Beneficiari
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link href={`/beneficiario/${beneficiario.id}`} className="flex items-center">
+                                <User className="w-4 h-4 mr-2" />
+                                Vedi Dettagli
+                            </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                             <Link href={`/beneficiario/modifica?id=${beneficiario.id}`} className="flex items-center">
                                 <Edit2 className="w-4 h-4 mr-2" />
