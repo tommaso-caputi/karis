@@ -11,7 +11,8 @@ import {
     Settings,
     LogOut,
     Menu,
-    X
+    X,
+    User
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -81,6 +82,7 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Package, label: "Beni", path: "/beni" },
+        { icon: User, label: "Beneficiari", path: "/beneficiario" },
         /* { icon: Send, label: "Richieste", path: "/richieste" },
         { icon: Bell, label: "Notifiche", path: "/notifiche", badge: 3 },
         { icon: Settings, label: "Impostazioni", path: "/impostazioni" }, */
@@ -132,7 +134,7 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
                             icon={<item.icon className="w-5 h-5" />}
                             label={item.label}
                             path={item.path}
-                            active={pathname === item.path}
+                            active={pathname === item.path || pathname.startsWith(item.path + "/")}
                             /* badge={item.badge} */
                             onClick={() => setSidebarOpen(false)}
                         />
