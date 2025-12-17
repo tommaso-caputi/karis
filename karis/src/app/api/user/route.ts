@@ -25,7 +25,7 @@ export async function GET(request: Request) {
             `
             nome,
             cognome,
-            parrocchia:parrocchia (
+            parrocchia:parrocchia_id (
                 nome
             )
         `
@@ -51,13 +51,23 @@ export async function GET(request: Request) {
     const { nome, cognome, parrocchia } = data as {
         nome: string;
         cognome: string;
-        parrocchia?: { nome: string }[] | null;
+        parrocchia?: { nome: string } | { nome: string }[] | null;
     };
+
+    // Gestisce sia il caso array che oggetto singolo
+    let parrocchiaNome: string | null = null;
+    if (parrocchia) {
+        if (Array.isArray(parrocchia) && parrocchia.length > 0) {
+            parrocchiaNome = parrocchia[0].nome;
+        } else if (!Array.isArray(parrocchia) && parrocchia.nome) {
+            parrocchiaNome = parrocchia.nome;
+        }
+    }
 
     return NextResponse.json({
         nome,
         cognome,
-        parrocchia: Array.isArray(parrocchia) && parrocchia.length > 0 ? parrocchia[0].nome : null,
+        parrocchia: parrocchiaNome,
     });
 }
 
