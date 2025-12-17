@@ -14,8 +14,15 @@ import {
     X
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+interface UserData {
+    nome: string;
+    cognome: string;
+    parrocchia: string | null;
+}
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -26,15 +33,57 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayoutProps) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const pathname = usePathname();
+    const router = useRouter();
+
+    useEffect(() => {
+        const loadUser = async () => {
+            if (!supabase) return;
+
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+
+            if (!user) return;
+
+            try {
+                const res = await fetch(`/api/user?userId=${user.id}`);
+                if (!res.ok) return;
+                const data: UserData = await res.json();
+                setUserData(data);
+            } catch {
+                // Silenzia errori nella sidebar
+            }
+        };
+
+        void loadUser();
+    }, []);
+
+    const handleLogout = async () => {
+        if (!supabase) {
+            router.push("/login");
+            return;
+        }
+
+        try {
+            await supabase.auth.signOut();
+        } finally {
+            if (typeof window !== "undefined") {
+                window.localStorage.removeItem("karis_login_email");
+                window.localStorage.removeItem("karis_remember_me");
+                window.localStorage.removeItem("karis_user_id");
+            }
+            router.push("/login");
+        }
+    };
 
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Package, label: "Beni", path: "/beni" },
-        { icon: Plus, label: "Nuovo Bene", path: "/beni/nuovo" },
-        { icon: Send, label: "Richieste", path: "/richieste" },
+        /* { icon: Send, label: "Richieste", path: "/richieste" },
         { icon: Bell, label: "Notifiche", path: "/notifiche", badge: 3 },
-        { icon: Settings, label: "Impostazioni", path: "/impostazioni" },
+        { icon: Settings, label: "Impostazioni", path: "/impostazioni" }, */
     ];
 
     return (
@@ -64,7 +113,7 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
                 </button>
 
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2 mb-10">
+                <Link href="/dashboard" className="flex items-center gap-2 mb-10">
                     <img
                         src="/favicon.ico"
                         alt="KARIS logo"
@@ -84,7 +133,7 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
                             label={item.label}
                             path={item.path}
                             active={pathname === item.path}
-                            badge={item.badge}
+                            /* badge={item.badge} */
                             onClick={() => setSidebarOpen(false)}
                         />
                     ))}
@@ -94,18 +143,25 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
                 <div className="pt-6 border-t border-border">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-foreground font-medium">
-                            MR
+                            {(userData?.nome?.[0] ?? "U").toUpperCase()}
+                            {(userData?.cognome?.[0] ?? "").toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground truncate">Mario Rossi</div>
-                            <div className="text-sm text-muted-foreground truncate">Parrocchia S. Giovanni</div>
+                            <div className="font-medium text-foreground truncate">
+                                {userData ? `${userData.nome} ${userData.cognome}` : "Utente"}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">
+                                {userData?.parrocchia ?? "Parrocchia non disponibile"}
+                            </div>
                         </div>
                     </div>
-                    <Button variant="ghost" className="w-full justify-start text-muted-foreground" asChild>
-                        <Link href="/">
-                            <LogOut className="w-4 h-4 mr-2" />
-                            Esci
-                        </Link>
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start text-muted-foreground"
+                        onClick={handleLogout}
+                    >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Esci
                     </Button>
                 </div>
             </aside>

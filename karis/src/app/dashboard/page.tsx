@@ -1,3 +1,5 @@
+"use client";
+
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,13 +15,134 @@ import {
     Inbox
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+interface UserData {
+    nome: string;
+    cognome: string;
+    parrocchia: string | null;
+}
+
+interface Bene {
+    id: string;
+    name: string;
+    category: string | null;
+    quantity: number;
+    unit: string;
+    updated_at: string | null;
+}
 
 const Dashboard = () => {
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [beni, setBeni] = useState<Bene[]>([]);
+    const [loadingBeni, setLoadingBeni] = useState(true);
+
+    useEffect(() => {
+        const loadUser = async () => {
+            if (!supabase) {
+                setLoading(false);
+                return;
+            }
+
+            const {
+                data: { user },
+                error: authError,
+            } = await supabase.auth.getUser();
+
+            if (authError || !user) {
+                console.error("Errore nel recupero dell'utente autenticato:", authError);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/user?userId=${user.id}`);
+                if (!res.ok) {
+                    console.error("Errore risposta /api/user:", await res.json());
+                    setLoading(false);
+                    return;
+                }
+                const data: UserData = await res.json();
+                setUserData(data);
+            } catch (e) {
+                console.error("Errore chiamata /api/user:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        void loadUser();
+    }, []);
+
+    useEffect(() => {
+        const loadBeni = async () => {
+            if (!supabase) {
+                setLoadingBeni(false);
+                return;
+            }
+
+            const {
+                data: { user },
+                error: authError,
+            } = await supabase.auth.getUser();
+
+            if (authError || !user) {
+                console.error("Errore nel recupero dell'utente autenticato per i beni:", authError);
+                setLoadingBeni(false);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/beni?userId=${user.id}`);
+                if (!res.ok) {
+                    console.error("Errore risposta /api/beni:", await res.json());
+                    setLoadingBeni(false);
+                    return;
+                }
+                const data: Bene[] = await res.json();
+                setBeni(data);
+            } catch (e) {
+                console.error("Errore chiamata /api/beni:", e);
+            } finally {
+                setLoadingBeni(false);
+            }
+        };
+
+        void loadBeni();
+    }, []);
+
+    const subtitle = loading
+        ? "Caricamento dati parrocchia..."
+        : userData?.parrocchia
+            ? `Parrocchia ${userData.parrocchia}`
+            : "Parrocchia non disponibile";
+
+    const totalQuantity = beni.reduce((sum, bene) => sum + bene.quantity, 0);
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const recentUpdatesCount = beni.filter(bene => {
+        if (!bene.updated_at) return false;
+        const updatedAtDate = new Date(bene.updated_at);
+        return updatedAtDate >= threeDaysAgo;
+    }).length;
+
+    const beniTrend: "up" | "down" = recentUpdatesCount > 0 ? "up" : "down";
+
+    const beniChangeLabel = loadingBeni
+        ? ""
+        : recentUpdatesCount === 0
+            ? "Nessuna modifica"
+            : `${recentUpdatesCount} beni aggiornati`;
+
     return (
         <>
             <DashboardLayout
-                title="Dashboard"
-                subtitle="Parrocchia San Giovanni Battista"
+                title={userData ? `Ciao, ${userData.nome} ${userData.cognome}` : "Dashboard"}
+                subtitle={subtitle}
                 actions={
                     <Button variant="default" asChild>
                         <Link href="/beni/nuovo">
@@ -33,19 +156,12 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <StatCard
                         title="Beni Totali"
-                        value="1,234"
-                        change="+12%"
-                        trend="up"
+                        value={loadingBeni ? "..." : totalQuantity.toString()}
+                        change={beniChangeLabel}
+                        trend={beniTrend}
                         icon={<Package className="w-5 h-5" />}
                     />
-                    <StatCard
-                        title="Scorte Basse"
-                        value="8"
-                        change="+2"
-                        trend="down"
-                        icon={<AlertCircle className="w-5 h-5" />}
-                    />
-                    <StatCard
+                    {/* <StatCard
                         title="Richieste Inviate"
                         value="5"
                         change="+3"
@@ -58,7 +174,7 @@ const Dashboard = () => {
                         change="+2"
                         trend="up"
                         icon={<Inbox className="w-5 h-5" />}
-                    />
+                    /> */}
                 </div>
 
                 {/* Content Grid */}
@@ -67,7 +183,7 @@ const Dashboard = () => {
                     <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="font-display text-xl font-semibold text-foreground">
-                                Beni con Scorte Basse
+                                Beni in magazzino
                             </h2>
                             <Button variant="outline" size="sm" asChild>
                                 <Link href="/beni">Vedi tutti</Link>
@@ -75,53 +191,32 @@ const Dashboard = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <BeneRow
-                                name="Latte UHT (1L)"
-                                category="Alimentari"
-                                quantity={12}
-                                threshold={20}
-                            />
-                            <BeneRow
-                                name="Giacche Invernali"
-                                category="Abbigliamento"
-                                quantity={8}
-                                threshold={15}
-                            />
-                            <BeneRow
-                                name="Paracetamolo"
-                                category="Medicinali"
-                                quantity={5}
-                                threshold={10}
-                            />
-                            <BeneRow
-                                name="Pannolini Taglia 3"
-                                category="Altro"
-                                quantity={18}
-                                threshold={25}
-                            />
-                        </div>
-
-                        <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800">
-                            <div className="flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="font-medium text-amber-800 dark:text-amber-200">Attenzione</p>
-                                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                                        8 beni hanno raggiunto la soglia di allarme. Considera di richiedere forniture ad altre parrocchie.
-                                    </p>
-                                    <Button variant="outline" size="sm" className="mt-3 border-amber-300 text-amber-700 hover:bg-amber-100" asChild>
-                                        <Link href="/richieste">
-                                            <Send className="w-4 h-4 mr-2" />
-                                            Invia Richiesta
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </div>
+                            {loadingBeni && (
+                                <p className="text-sm text-muted-foreground">
+                                    Caricamento beni...
+                                </p>
+                            )}
+                            {!loadingBeni && beni.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    Nessun bene presente in magazzino.
+                                </p>
+                            )}
+                            {!loadingBeni &&
+                                beni
+                                    .slice(0, 4)
+                                    .map((bene) => (
+                                        <BeneRow
+                                            key={bene.id}
+                                            name={bene.name}
+                                            category={bene.category ?? "Altro"}
+                                            quantity={bene.quantity}
+                                        />
+                                    ))}
                         </div>
                     </div>
 
                     {/* Recent Activity */}
-                    <div className="bg-card rounded-2xl border border-border p-6">
+                    {/* <div className="bg-card rounded-2xl border border-border p-6">
                         <h2 className="font-display text-xl font-semibold text-foreground mb-6">
                             Attività Recente
                         </h2>
@@ -160,7 +255,7 @@ const Dashboard = () => {
                         <Button variant="ghost" className="w-full mt-4 text-primary" asChild>
                             <Link href="/richieste">Vedi tutte le richieste</Link>
                         </Button>
-                    </div>
+                    </div> */}
                 </div>
             </DashboardLayout>
         </>
@@ -200,15 +295,11 @@ const BeneRow = ({
     name,
     category,
     quantity,
-    threshold,
 }: {
     name: string;
     category: string;
     quantity: number;
-    threshold: number;
 }) => {
-    const percentage = (quantity / threshold) * 100;
-
     return (
         <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
             <div className="w-10 h-10 rounded-lg bg-card flex items-center justify-center">
@@ -220,13 +311,7 @@ const BeneRow = ({
             </div>
             <div className="text-right">
                 <div className="font-semibold text-amber-600">
-                    {quantity} / {threshold}
-                </div>
-                <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-amber-500 rounded-full"
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                    />
+                    {quantity}
                 </div>
             </div>
         </div>
