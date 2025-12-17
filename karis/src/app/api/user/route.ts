@@ -51,13 +51,13 @@ export async function GET(request: Request) {
     const { nome, cognome, parrocchia } = data as {
         nome: string;
         cognome: string;
-        parrocchia?: { nome: string } | null;
+        parrocchia?: { nome: string }[] | null;
     };
 
     return NextResponse.json({
         nome,
         cognome,
-        parrocchia: parrocchia?.nome ?? null,
+        parrocchia: Array.isArray(parrocchia) && parrocchia.length > 0 ? parrocchia[0].nome : null,
     });
 }
 
