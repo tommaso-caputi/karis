@@ -280,6 +280,7 @@ const Beni = () => {
                                 key={bene.id} 
                                 bene={bene}
                                 onDelete={async () => {
+                                    if (!supabase) return;
                                     const {
                                         data: { user },
                                     } = await supabase.auth.getUser();

@@ -398,3 +398,109 @@ export async function DELETE(request: Request) {
     );
 }
 
+export async function PUT(request: Request) {
+    if (!supabase) {
+        return NextResponse.json(
+            { error: "Supabase non è configurato sul server." },
+            { status: 500 }
+        );
+    }
+
+    let body: {
+        userId?: string;
+        id?: string;
+        cognome?: string;
+        note?: string | null;
+    };
+
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json(
+            { error: "Body della richiesta non valido." },
+            { status: 400 }
+        );
+    }
+
+    const { userId, id, cognome, note } = body;
+
+    if (!userId || !id || !cognome) {
+        return NextResponse.json(
+            { error: "Parametri mancanti: userId, id e cognome sono obbligatori." },
+            { status: 400 }
+        );
+    }
+
+    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
+    const { data: utente, error: utenteError } = await supabase
+        .from("utente")
+        .select("id, parrocchia_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (utenteError) {
+        console.error("Errore nel recupero dell'utente (PUT /api/famiglia):", utenteError);
+        return NextResponse.json(
+            { error: "Errore nel recupero dell'utente." },
+            { status: 500 }
+        );
+    }
+
+    if (!utente || !utente.parrocchia_id) {
+        return NextResponse.json(
+            { error: "Utente o parrocchia associata non trovati." },
+            { status: 404 }
+        );
+    }
+
+    // 2. Verifica che la famiglia esista
+    const { data: famigliaEsistente, error: famigliaSelectError } = await supabase
+        .from("famiglia")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (famigliaSelectError) {
+        console.error("Errore nel recupero della famiglia:", famigliaSelectError);
+        return NextResponse.json(
+            { error: "Errore nel recupero della famiglia." },
+            { status: 500 }
+        );
+    }
+
+    if (!famigliaEsistente) {
+        return NextResponse.json(
+            { error: "Famiglia non trovata." },
+            { status: 404 }
+        );
+    }
+
+    // 3. Aggiornamento della famiglia
+    const { data: famigliaAggiornata, error: famigliaUpdateError } = await supabase
+        .from("famiglia")
+        .update({
+            cognome,
+            note: note || null,
+        })
+        .eq("id", id)
+        .select("id, cognome, note")
+        .maybeSingle();
+
+    if (famigliaUpdateError || !famigliaAggiornata) {
+        console.error("Errore nell'aggiornamento della famiglia:", famigliaUpdateError);
+        return NextResponse.json(
+            { error: "Errore nell'aggiornamento della famiglia." },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json(
+        {
+            id: famigliaAggiornata.id,
+            cognome: famigliaAggiornata.cognome,
+            note: famigliaAggiornata.note,
+        },
+        { status: 200 }
+    );
+}
+

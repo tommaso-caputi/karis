@@ -226,6 +226,7 @@ const Beneficiario = () => {
                                     key={beneficiario.id} 
                                     beneficiario={beneficiario}
                                     onDelete={async () => {
+                                        if (!supabase) return;
                                         const {
                                             data: { user },
                                         } = await supabase.auth.getUser();
@@ -317,11 +318,18 @@ const Beneficiario = () => {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/famiglia/modifica?id=${famiglia.id}`} className="flex items-center">
+                                                                <Edit2 className="w-4 h-4 mr-2" />
+                                                                Modifica
+                                                            </Link>
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem 
                                                             className="text-destructive"
                                                             onClick={async (e) => {
                                                                 e.preventDefault();
                                                                 if (window.confirm(`Sei sicuro di voler eliminare la famiglia "${famiglia.cognome}"?`)) {
+                                                                    if (!supabase) return;
                                                                     const {
                                                                         data: { user },
                                                                     } = await supabase.auth.getUser();
