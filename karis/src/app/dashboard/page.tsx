@@ -22,6 +22,7 @@ interface UserData {
     nome: string;
     cognome: string;
     parrocchia: string | null;
+    ruolo?: string | null;
 }
 
 interface Bene {
@@ -155,10 +156,14 @@ const Dashboard = () => {
     }, []);
 
     const subtitle = loading
-        ? "Caricamento dati parrocchia..."
-        : userData?.parrocchia
-            ? `Parrocchia ${userData.parrocchia}`
-            : "Parrocchia non disponibile";
+        ? "Caricamento dati utente..."
+        : (() => {
+            const parts: string[] = [];
+            const ruolo = (userData?.ruolo ?? "").trim();
+            if (ruolo) parts.push(ruolo);
+            if (userData?.parrocchia) parts.push(`Parrocchia ${userData.parrocchia}`);
+            return parts.length > 0 ? parts.join(" · ") : "Dati utente non disponibili";
+        })();
 
     const totalQuantity = beni.reduce((sum, bene) => sum + bene.quantity, 0);
 

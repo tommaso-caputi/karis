@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
-import { Trash2 } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type Volontario = {
@@ -43,6 +43,7 @@ export default function VolontariPage() {
     const [inviti, setInviti] = useState<Invito[]>([]);
     const [loadingInviti, setLoadingInviti] = useState(true);
     const [creatingInvito, setCreatingInvito] = useState(false);
+    const [copiedInvitoId, setCopiedInvitoId] = useState<string | null>(null);
 
     const isAdmin = useMemo(() => (me?.ruolo ?? "").toLowerCase().includes("amm"), [me?.ruolo]);
 
@@ -162,6 +163,29 @@ export default function VolontariPage() {
         await refresh(me.id);
     };
 
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            // fallback best-effort
+            try {
+                const el = document.createElement("textarea");
+                el.value = text;
+                el.style.position = "fixed";
+                el.style.top = "-1000px";
+                document.body.appendChild(el);
+                el.focus();
+                el.select();
+                const ok = document.execCommand("copy");
+                document.body.removeChild(el);
+                return ok;
+            } catch {
+                return false;
+            }
+        }
+    };
+
     const subtitle = loadingMe
         ? "Caricamento..."
         : me?.parrocchia
@@ -201,6 +225,7 @@ export default function VolontariPage() {
                                             ? `${window.location.origin}/invito/${inv.token}`
                                             : `/invito/${inv.token}`;
                                     const isActive = !inv.revoked_at && !inv.accepted_at;
+                                    const isCopied = copiedInvitoId === inv.id;
                                     return (
                                         <div key={inv.id} className="p-3 rounded-xl bg-secondary/50">
                                             <div className="text-xs text-muted-foreground mb-2">
@@ -214,14 +239,31 @@ export default function VolontariPage() {
                                                     size="sm"
                                                     className="flex-1"
                                                     onClick={async () => {
-                                                        try {
-                                                            await navigator.clipboard.writeText(link);
-                                                        } catch {
-                                                            // fallback
-                                                        }
+                                                        const ok = await copyToClipboard(link);
+                                                        if (!ok) return;
+                                                        setCopiedInvitoId(inv.id);
+                                                        window.setTimeout(() => {
+                                                            setCopiedInvitoId((prev) => (prev === inv.id ? null : prev));
+                                                        }, 1400);
                                                     }}
                                                 >
-                                                    Copia link
+                                                    <span
+                                                        className={`inline-flex items-center justify-center gap-2 transition-all ${
+                                                            isCopied ? "text-green-700" : ""
+                                                        }`}
+                                                    >
+                                                        {isCopied ? (
+                                                            <>
+                                                                <Check className="w-4 h-4 animate-pulse" />
+                                                                Copiato
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Copy className="w-4 h-4" />
+                                                                Copia link
+                                                            </>
+                                                        )}
+                                                    </span>
                                                 </Button>
                                                 <Button
                                                     variant="destructive"
