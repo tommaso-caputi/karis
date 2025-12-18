@@ -11,9 +11,26 @@ export default function InvitoSignupPage() {
     const params = useParams<{ token: string }>();
     const token = params?.token ?? "";
 
+    const toItalianAuthError = (message?: string) => {
+        const msg = (message ?? "").toLowerCase();
+        if (!msg) return "Si è verificato un errore durante la registrazione.";
+        if (msg.includes("invalid login credentials")) return "Credenziali non valide.";
+        if (msg.includes("user already registered") || msg.includes("already registered"))
+            return "Esiste già un account con questa email.";
+        if (msg.includes("password") && msg.includes("should be at least"))
+            return "La password è troppo corta: usa almeno 6 caratteri.";
+        if (msg.includes("password") && msg.includes("weak"))
+            return "La password è troppo debole: scegli una password più complessa.";
+        if (msg.includes("invalid email")) return "L'indirizzo email non è valido.";
+        if (msg.includes("email rate limit") || msg.includes("rate limit"))
+            return "Troppe richieste: riprova tra qualche minuto.";
+        return "Si è verificato un errore durante la registrazione. Riprova.";
+    };
+
     const [form, setForm] = useState({
         email: "",
         password: "",
+        confirmPassword: "",
         nome: "",
         cognome: "",
         cf: "",
@@ -24,6 +41,16 @@ export default function InvitoSignupPage() {
         e.preventDefault();
         if (!supabase) return;
 
+        if (!token) {
+            alert("Token invito mancante o non valido.");
+            return;
+        }
+
+        if (form.password !== form.confirmPassword) {
+            alert("Le password non coincidono.");
+            return;
+        }
+
         setSubmitting(true);
         try {
             // 1) signup standard (non-admin)
@@ -33,7 +60,7 @@ export default function InvitoSignupPage() {
             });
 
             if (error || !data.user) {
-                alert(error?.message ?? "Errore signup.");
+                alert(toItalianAuthError(error?.message));
                 return;
             }
 
@@ -52,7 +79,7 @@ export default function InvitoSignupPage() {
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                alert(err?.error ?? "Errore accettazione invito.");
+                alert(err?.error ?? "Errore durante l'accettazione dell'invito.");
                 return;
             }
 
@@ -93,6 +120,14 @@ export default function InvitoSignupPage() {
                         placeholder="Password"
                         value={form.password}
                         onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                        required
+                        disabled={submitting}
+                    />
+                    <Input
+                        type="password"
+                        placeholder="Conferma password"
+                        value={form.confirmPassword}
+                        onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))}
                         required
                         disabled={submitting}
                     />
