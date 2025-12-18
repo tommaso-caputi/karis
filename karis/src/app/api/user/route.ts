@@ -25,6 +25,9 @@ export async function GET(request: Request) {
             `
             nome,
             cognome,
+            tipo_utente:tipo_utente_id (
+                descrizione
+            ),
             parrocchia:parrocchia_id (
                 nome
             )
@@ -48,10 +51,11 @@ export async function GET(request: Request) {
         );
     }
 
-    const { nome, cognome, parrocchia } = data as {
+    const { nome, cognome, parrocchia, tipo_utente } = data as {
         nome: string;
         cognome: string;
         parrocchia?: { nome: string } | { nome: string }[] | null;
+        tipo_utente?: { descrizione: string } | { descrizione: string }[] | null;
     };
 
     // Gestisce sia il caso array che oggetto singolo
@@ -64,10 +68,20 @@ export async function GET(request: Request) {
         }
     }
 
+    let ruolo: string | null = null;
+    if (tipo_utente) {
+        if (Array.isArray(tipo_utente) && tipo_utente.length > 0) {
+            ruolo = tipo_utente[0].descrizione ?? null;
+        } else if (!Array.isArray(tipo_utente) && tipo_utente.descrizione) {
+            ruolo = tipo_utente.descrizione;
+        }
+    }
+
     return NextResponse.json({
         nome,
         cognome,
         parrocchia: parrocchiaNome,
+        ruolo,
     });
 }
 

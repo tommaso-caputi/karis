@@ -24,6 +24,7 @@ interface UserData {
     nome: string;
     cognome: string;
     parrocchia: string | null;
+    ruolo?: string | null;
 }
 
 interface DashboardLayoutProps {
@@ -80,6 +81,8 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
         }
     };
 
+    const isAdmin = (userData?.ruolo ?? "").toLowerCase().includes("amm");
+
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Package, label: "Beni", path: "/beni" },
@@ -89,6 +92,10 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
         { icon: Bell, label: "Notifiche", path: "/notifiche", badge: 3 },
         { icon: Settings, label: "Impostazioni", path: "/impostazioni" }, */
     ];
+
+    if (isAdmin) {
+        navItems.push({ icon: Settings, label: "Volontari", path: "/volontari" });
+    }
 
     return (
         <div className="min-h-screen bg-background flex">
