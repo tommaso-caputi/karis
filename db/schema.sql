@@ -49,6 +49,21 @@ CREATE TABLE public.inventario_parrocchia (
   CONSTRAINT inventario_parrocchia_parrocchia_id_fkey FOREIGN KEY (parrocchia_id) REFERENCES public.parrocchia(id),
   CONSTRAINT inventario_parrocchia_risorsa_id_fkey FOREIGN KEY (risorsa_id) REFERENCES public.risorsa(id)
 );
+CREATE TABLE public.invito (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  token text NOT NULL UNIQUE,
+  parrocchia_id uuid NOT NULL,
+  ruolo text NOT NULL DEFAULT 'volontario'::text CHECK (ruolo = ANY (ARRAY['volontario'::text, 'amministratore'::text])),
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL DEFAULT (now() + '7 days'::interval),
+  accepted_at timestamp with time zone,
+  accepted_by uuid UNIQUE,
+  revoked_at timestamp with time zone,
+  CONSTRAINT invito_pkey PRIMARY KEY (id),
+  CONSTRAINT invito_parrocchia_id_fkey FOREIGN KEY (parrocchia_id) REFERENCES public.parrocchia(id),
+  CONSTRAINT invito_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.utente(id)
+);
 CREATE TABLE public.parrocchia (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   nome text NOT NULL,

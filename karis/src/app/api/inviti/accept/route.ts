@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
 async function getTipoUtenteIdVolontario(): Promise<string | null> {
+    if (!supabase) return null;
     // match robusto
     const direct = await supabase
         .from("tipo_utente")

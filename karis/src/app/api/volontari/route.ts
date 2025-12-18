@@ -11,6 +11,7 @@ const normalizeRole = (raw: string | null | undefined): Ruolo => {
 };
 
 async function getRequester(userId: string) {
+    if (!supabase) return { error: new Error("Supabase non è configurato sul server.") };
     const { data, error } = await supabase
         .from("utente")
         .select(
@@ -45,6 +46,7 @@ async function getRequester(userId: string) {
 }
 
 async function getTipoUtenteIdByRole(role: Ruolo): Promise<string | null> {
+    if (!supabase) return null;
     const desired =
         role === "amministratore"
             ? ["amministratore", "admin"]

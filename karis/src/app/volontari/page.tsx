@@ -96,7 +96,8 @@ export default function VolontariPage() {
                 return;
             }
             const data = (await res.json()) as Invito[];
-            setInviti(data);
+            // Mostriamo solo inviti non revocati: quando un invito viene revocato deve sparire dalla UI
+            setInviti((data ?? []).filter((i) => !i.revoked_at));
         } finally {
             setLoadingInviti(false);
         }
@@ -135,10 +136,14 @@ export default function VolontariPage() {
 
     const handleRevokeInvito = async (id: string) => {
         if (!me?.id) return;
+        // Optimistic update: rimuovi subito dalla UI
+        setInviti((prev) => prev.filter((i) => i.id !== id));
         const res = await fetch(`/api/inviti?userId=${me.id}&id=${id}`, { method: "DELETE" });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             alert(err?.error ?? "Errore revoca invito.");
+            // rollback best-effort
+            await refreshInviti(me.id);
             return;
         }
         await refreshInviti(me.id);
