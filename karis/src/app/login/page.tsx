@@ -12,6 +12,15 @@ import { supabase } from "@/lib/supabaseClient";
 const getLoginErrorMessage = (status?: number, rawMessage?: string | null) => {
     const normalized = (rawMessage ?? "").toLowerCase();
 
+    const isEmailNotConfirmed =
+        normalized.includes("email not confirmed") ||
+        normalized.includes("email_not_confirmed") ||
+        normalized.includes("not confirmed");
+
+    if (isEmailNotConfirmed) {
+        return "Email non confermata. Controlla la posta e clicca sul link di conferma (anche in spam).";
+    }
+
     const isInvalidCredentials =
         status === 400 ||
         normalized.includes("invalid login credentials") ||
@@ -32,6 +41,7 @@ const Login = () => {
     });
     const [rememberMe, setRememberMe] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isResending, setIsResending] = useState(false);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -60,6 +70,31 @@ const Login = () => {
 
     const handleRememberMeChange = () => {
         setRememberMe((prev) => !prev);
+    };
+
+    const handleResendConfirmation = async () => {
+        if (!supabase) return;
+        const email = formData.email.trim();
+        if (!email) {
+            alert("Inserisci prima l'email.");
+            return;
+        }
+        setIsResending(true);
+        try {
+            const { error } = await supabase.auth.resend({
+                type: "signup",
+                email,
+            });
+            if (error) {
+                alert(error.message);
+                return;
+            }
+            toast.success("Email di conferma inviata", {
+                description: "Controlla la posta (anche spam).",
+            });
+        } finally {
+            setIsResending(false);
+        }
     };
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -195,6 +230,16 @@ const Login = () => {
                             >
                                 {isSubmitting ? "Accesso in corso..." : "Accedi"}
                                 <LogIn className="w-4 h-4" />
+                            </Button>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleResendConfirmation}
+                                disabled={isSubmitting || isResending}
+                            >
+                                {isResending ? "Invio..." : "Reinvia email di conferma"}
                             </Button>
                         </form>
 

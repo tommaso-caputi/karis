@@ -33,11 +33,19 @@ interface Bene {
     updated_at: string | null;
 }
 
+interface DashboardSummary {
+    days: number;
+    assegnazioni_count: number;
+    quantita_assegnata: number;
+}
+
 const Dashboard = () => {
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [beni, setBeni] = useState<Bene[]>([]);
     const [loadingBeni, setLoadingBeni] = useState(true);
+    const [summary, setSummary] = useState<DashboardSummary | null>(null);
+    const [loadingSummary, setLoadingSummary] = useState(true);
 
     useEffect(() => {
         const loadUser = async () => {
@@ -113,6 +121,39 @@ const Dashboard = () => {
         void loadBeni();
     }, []);
 
+    useEffect(() => {
+        const loadSummary = async () => {
+            if (!supabase) {
+                setLoadingSummary(false);
+                return;
+            }
+
+            const {
+                data: { user },
+                error: authError,
+            } = await supabase.auth.getUser();
+
+            if (authError || !user) {
+                setLoadingSummary(false);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/dashboard/summary?userId=${user.id}&days=7`);
+                if (!res.ok) {
+                    setLoadingSummary(false);
+                    return;
+                }
+                const data: DashboardSummary = await res.json();
+                setSummary(data);
+            } finally {
+                setLoadingSummary(false);
+            }
+        };
+
+        void loadSummary();
+    }, []);
+
     const subtitle = loading
         ? "Caricamento dati parrocchia..."
         : userData?.parrocchia
@@ -152,6 +193,17 @@ const Dashboard = () => {
                         change={beniChangeLabel}
                         trend={beniTrend}
                         icon={<Package className="w-5 h-5" />}
+                    />
+                    <StatCard
+                        title="Consegne (7 giorni)"
+                        value={loadingSummary ? "..." : (summary?.assegnazioni_count ?? 0).toString()}
+                        change={
+                            loadingSummary
+                                ? ""
+                                : `${summary?.quantita_assegnata ?? 0} pezzi assegnati`
+                        }
+                        trend={(summary?.assegnazioni_count ?? 0) > 0 ? "up" : "down"}
+                        icon={<TrendingUp className="w-5 h-5" />}
                     />
                     {/* <StatCard
                         title="Richieste Inviate"
