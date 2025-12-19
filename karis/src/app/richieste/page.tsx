@@ -312,32 +312,6 @@ const RequestCard = ({
     }
   };
 
-  const handleReject = async () => {
-    if (!userId) return;
-
-    try {
-      const res = await fetch("/api/richieste", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          richiesta_id: request.id,
-          azione: "reject",
-        }),
-      });
-
-      if (res.ok) {
-        toast.info("Richiesta rifiutata.");
-        onAction();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Errore nel rifiuto della richiesta");
-      }
-    } catch (e) {
-      console.error("Errore:", e);
-      toast.error("Errore nel rifiuto della richiesta");
-    }
-  };
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 hover:shadow-soft transition-shadow">
@@ -405,14 +379,10 @@ const RequestCard = ({
 
       {/* Actions for pending requests in ricevute */}
       {canAcceptReject && userId && (
-        <div className="mt-4 pt-4 border-t border-border flex gap-3">
-          <Button variant="hero" className="flex-1" onClick={handleAccept}>
+        <div className="mt-4 pt-4 border-t border-border">
+          <Button variant="hero" className="w-full" onClick={handleAccept}>
             <CheckCircle2 className="w-4 h-4" />
             Accetta
-          </Button>
-          <Button variant="outline" className="flex-1" onClick={handleReject}>
-            <XCircle className="w-4 h-4" />
-            Rifiuta
           </Button>
         </div>
       )}
@@ -536,21 +506,6 @@ const NewRequestForm = ({
             ))}
           </select>
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">
-          Quantità richiesta <span className="text-destructive">*</span>
-        </label>
-        <input
-          type="number"
-          min="1"
-          value={formData.quantita}
-          onChange={(e) => setFormData({ ...formData, quantita: e.target.value })}
-          placeholder="es. 20"
-          className="w-full px-4 py-3 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          required
-        />
       </div>
 
       <div>
