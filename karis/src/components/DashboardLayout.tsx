@@ -88,8 +88,8 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
         { icon: Package, label: "Beni", path: "/beni" },
         { icon: Gift, label: "Crea Pacco", path: "/beni/pacco" },
         { icon: User, label: "Beneficiari", path: "/beneficiario" },
-        /* { icon: Send, label: "Richieste", path: "/richieste" },
-        { icon: Bell, label: "Notifiche", path: "/notifiche", badge: 3 },
+        { icon: Send, label: "Richieste", path: "/richieste" },
+        /* { icon: Bell, label: "Notifiche", path: "/notifiche", badge: 3 },
         { icon: Settings, label: "Impostazioni", path: "/impostazioni" }, */
     ];
 
