@@ -235,7 +235,7 @@ export async function PATCH(request: Request) {
     let body: {
         userId?: string;
         richiesta_id?: string;
-        azione?: "accept" | "reject";
+        azione?: "accept";
     };
 
     try {
@@ -256,9 +256,9 @@ export async function PATCH(request: Request) {
         );
     }
 
-    if (azione !== "accept" && azione !== "reject") {
+    if (azione !== "accept") {
         return NextResponse.json(
-            { error: "Azione non valida. Deve essere 'accept' o 'reject'." },
+            { error: "Azione non valida. Deve essere 'accept'." },
             { status: 400 }
         );
     }
@@ -309,15 +309,11 @@ export async function PATCH(request: Request) {
     }
 
     // 4. Aggiorna la richiesta
-    const nuovoStato = azione === "accept" ? "accepted" : "rejected";
     const updateData: any = {
-        stato: nuovoStato,
+        stato: "accepted",
         updated_at: new Date().toISOString(),
+        parrocchia_accettante_id: parrocchiaId,
     };
-
-    if (azione === "accept") {
-        updateData.parrocchia_accettante_id = parrocchiaId;
-    }
 
     const { data: richiestaAggiornata, error: updateError } = await supabase
         .from("richiesta_parrocchia")
