@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { getUserParrocchia, validateUserId, validateUserIdFromBody, normalizeSupabaseRelation } from "@/lib/apiHelpers";
 
 interface RichiestaParrocchiaResponse {
     id: string;
@@ -30,39 +31,15 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userIdResult = validateUserId(searchParams);
+    if (userIdResult instanceof NextResponse) return userIdResult;
+    const userId = userIdResult;
+
     const view = searchParams.get("view"); // "bacheca" | "inviate" | "ricevute"
 
-    if (!userId) {
-        return NextResponse.json(
-            { error: "Parametro 'userId' mancante." },
-            { status: 400 }
-        );
-    }
-
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente:", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // 2. Costruisci la query in base alla vista richiesta
     let query = supabase
@@ -115,12 +92,8 @@ export async function GET(request: Request) {
 
     // 3. Formatta la risposta
     const richiesteFormatted: RichiestaParrocchiaResponse[] = (richieste ?? []).map((r: any) => {
-        const parrocchiaRichiedente = Array.isArray(r.parrocchia_richiedente)
-            ? r.parrocchia_richiedente[0]
-            : r.parrocchia_richiedente;
-        const parrocchiaAccettante = Array.isArray(r.parrocchia_accettante)
-            ? r.parrocchia_accettante[0]
-            : r.parrocchia_accettante;
+        const parrocchiaRichiedente = normalizeSupabaseRelation(r.parrocchia_richiedente);
+        const parrocchiaAccettante = normalizeSupabaseRelation(r.parrocchia_accettante);
 
         return {
             id: r.id,
@@ -173,38 +146,22 @@ export async function POST(request: Request) {
         );
     }
 
-    const { userId, descrizione_bene, quantita, unita_misura, messaggio } = body;
+    const { descrizione_bene, quantita, unita_misura, messaggio } = body;
 
-    if (!userId || !descrizione_bene || !descrizione_bene.trim() || typeof quantita !== "number" || quantita <= 0) {
+    if (!descrizione_bene || !descrizione_bene.trim() || typeof quantita !== "number" || quantita <= 0) {
         return NextResponse.json(
-            { error: "Parametri mancanti o non validi: userId, descrizione_bene e quantita sono obbligatori." },
+            { error: "Parametri mancanti o non validi: descrizione_bene e quantita sono obbligatori." },
             { status: 400 }
         );
     }
 
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
+    const userIdResult = validateUserIdFromBody(body);
+    if (userIdResult instanceof NextResponse) return userIdResult;
+    const userId = userIdResult;
 
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente:", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // 2. Crea la richiesta
     const { data: nuovaRichiesta, error: richiestaError } = await supabase
@@ -245,9 +202,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Formatta la risposta
-    const parrocchiaRichiedente = Array.isArray(nuovaRichiesta.parrocchia_richiedente)
-        ? nuovaRichiesta.parrocchia_richiedente[0]
-        : nuovaRichiesta.parrocchia_richiedente;
+    const parrocchiaRichiedente = normalizeSupabaseRelation(nuovaRichiesta.parrocchia_richiedente);
 
     const richiestaFormatted: RichiestaParrocchiaResponse = {
         id: nuovaRichiesta.id,
@@ -292,11 +247,11 @@ export async function PATCH(request: Request) {
         );
     }
 
-    const { userId, richiesta_id, azione } = body;
+    const { richiesta_id, azione } = body;
 
-    if (!userId || !richiesta_id || !azione) {
+    if (!richiesta_id || !azione) {
         return NextResponse.json(
-            { error: "Parametri mancanti: userId, richiesta_id e azione sono obbligatori." },
+            { error: "Parametri mancanti: richiesta_id e azione sono obbligatori." },
             { status: 400 }
         );
     }
@@ -308,29 +263,13 @@ export async function PATCH(request: Request) {
         );
     }
 
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
+    const userIdResult = validateUserIdFromBody(body);
+    if (userIdResult instanceof NextResponse) return userIdResult;
+    const userId = userIdResult;
 
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente:", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // 2. Verifica che la richiesta esista e sia pending
     const { data: richiesta, error: richiestaError } = await supabase
@@ -416,12 +355,8 @@ export async function PATCH(request: Request) {
     }
 
     // 5. Formatta la risposta
-    const parrocchiaRichiedente = Array.isArray(richiestaAggiornata.parrocchia_richiedente)
-        ? richiestaAggiornata.parrocchia_richiedente[0]
-        : richiestaAggiornata.parrocchia_richiedente;
-    const parrocchiaAccettante = Array.isArray(richiestaAggiornata.parrocchia_accettante)
-        ? richiestaAggiornata.parrocchia_accettante[0]
-        : richiestaAggiornata.parrocchia_accettante;
+    const parrocchiaRichiedente = normalizeSupabaseRelation(richiestaAggiornata.parrocchia_richiedente);
+    const parrocchiaAccettante = normalizeSupabaseRelation(richiestaAggiornata.parrocchia_accettante);
 
     const richiestaFormatted: RichiestaParrocchiaResponse = {
         id: richiestaAggiornata.id,

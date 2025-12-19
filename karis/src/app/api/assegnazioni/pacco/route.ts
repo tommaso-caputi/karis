@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { getUserParrocchia, validateUserIdFromBody } from "@/lib/apiHelpers";
 
 interface AssegnazioneRequest {
     userId: string;
@@ -75,29 +76,9 @@ export async function POST(request: Request) {
         );
     }
 
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente:", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // 2. Verifica che tutte le risorse esistano e appartengano alla parrocchia
     const risorsaIds = [...new Set(assegnazioni.map(a => a.risorsa_id))];

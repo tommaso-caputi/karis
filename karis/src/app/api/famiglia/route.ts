@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { getUserParrocchia, validateUserId, validateUserIdFromBody } from "@/lib/apiHelpers";
 
 // GET endpoint per recuperare tutte le famiglie (per selezione)
 export async function GET(request: Request) {
@@ -11,39 +12,15 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userIdResult = validateUserId(searchParams);
+    if (userIdResult instanceof NextResponse) return userIdResult;
+    const userId = userIdResult;
+
     const all = searchParams.get("all"); // Parametro per recuperare tutte le famiglie
 
-    if (!userId) {
-        return NextResponse.json(
-            { error: "Parametro 'userId' mancante." },
-            { status: 400 }
-        );
-    }
-
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente (GET /api/famiglia):", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // Se all=true, recupera tutte le famiglie (anche senza beneficiari)
     if (all === "true") {
@@ -88,23 +65,7 @@ export async function GET(request: Request) {
         return NextResponse.json([]);
     }
 
-    // Recupera i beneficiari per le famiglie che hanno beneficiari nella parrocchia
-    const { data: beneficiariConFamiglia, error: beneficiariError } = await supabase
-        .from("beneficiario")
-        .select("famiglia_id")
-        .eq("parrocchia_id", parrocchiaId)
-        .not("famiglia_id", "is", null)
-        .in("famiglia_id", famigliaIds);
-
-    if (beneficiariError) {
-        console.error("Errore nel recupero dei beneficiari per le famiglie:", beneficiariError);
-        return NextResponse.json(
-            { error: "Errore nel recupero delle famiglie." },
-            { status: 500 }
-        );
-    }
-
-    // Ora recupera i beneficiari per ogni famiglia (escludendo i placeholder se esistono)
+    // Recupera i beneficiari per ogni famiglia (escludendo i placeholder se esistono)
     const { data: beneficiari, error: beneficiariDettagliError } = await supabase
         .from("beneficiario")
         .select(
@@ -277,39 +238,21 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const id = searchParams.get("id");
+    const userIdResult = validateUserId(searchParams);
+    if (userIdResult instanceof NextResponse) return userIdResult;
+    const userId = userIdResult;
 
-    if (!userId || !id) {
+    const id = searchParams.get("id");
+    if (!id) {
         return NextResponse.json(
-            { error: "Parametri mancanti: userId e id sono obbligatori." },
+            { error: "Parametro 'id' mancante." },
             { status: 400 }
         );
     }
 
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente (DELETE /api/famiglia):", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // 2. Verifica che la famiglia esista
     const { data: famigliaEsistente, error: famigliaSelectError } = await supabase
@@ -422,36 +365,17 @@ export async function PUT(request: Request) {
         );
     }
 
-    const { userId, id, cognome, note } = body;
+    const { id, cognome, note } = body;
 
-    if (!userId || !id || !cognome) {
+    if (!id || !cognome) {
         return NextResponse.json(
-            { error: "Parametri mancanti: userId, id e cognome sono obbligatori." },
+            { error: "Parametri mancanti: id e cognome sono obbligatori." },
             { status: 400 }
         );
     }
 
-    // 1. Recupero dell'utente per ottenere la parrocchia di appartenenza
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (utenteError) {
-        console.error("Errore nel recupero dell'utente (PUT /api/famiglia):", utenteError);
-        return NextResponse.json(
-            { error: "Errore nel recupero dell'utente." },
-            { status: 500 }
-        );
-    }
-
-    if (!utente || !utente.parrocchia_id) {
-        return NextResponse.json(
-            { error: "Utente o parrocchia associata non trovati." },
-            { status: 404 }
-        );
-    }
+    const userIdResult = validateUserIdFromBody(body);
+    if (userIdResult instanceof NextResponse) return userIdResult;
 
     // 2. Verifica che la famiglia esista
     const { data: famigliaEsistente, error: famigliaSelectError } = await supabase
