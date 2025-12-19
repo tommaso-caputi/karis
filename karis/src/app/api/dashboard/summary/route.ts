@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { getUserParrocchia, validateUserId } from "@/lib/apiHelpers";
 
 export async function GET(request: Request) {
     if (!supabase) {
@@ -7,29 +8,16 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userIdResult = validateUserId(searchParams);
+    if (userIdResult instanceof NextResponse) return userIdResult;
+    const userId = userIdResult;
+
     const daysParam = searchParams.get("days");
     const days = Math.max(1, Math.min(90, Number(daysParam ?? "7") || 7));
 
-    if (!userId) {
-        return NextResponse.json({ error: "Parametro 'userId' mancante." }, { status: 400 });
-    }
-
-    const { data: utente, error: utenteError } = await supabase
-        .from("utente")
-        .select("id, parrocchia_id")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (utenteError) {
-        return NextResponse.json({ error: "Errore nel recupero dell'utente." }, { status: 500 });
-    }
-
-    if (!utente?.parrocchia_id) {
-        return NextResponse.json({ error: "Utente o parrocchia associata non trovati." }, { status: 404 });
-    }
-
-    const parrocchiaId = utente.parrocchia_id as string;
+    const userResult = await getUserParrocchia(userId);
+    if (!userResult.success) return userResult.error;
+    const parrocchiaId = userResult.data.parrocchia_id;
 
     // Recupera risorse della parrocchia (per filtrare assegnazioni)
     const { data: risorseParrocchia, error: risorseError } = await supabase

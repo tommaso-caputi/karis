@@ -94,6 +94,21 @@ CREATE TABLE public.richiesta_risorse (
   CONSTRAINT richiesta_risorse_richiesta_id_fkey FOREIGN KEY (richiesta_id) REFERENCES public.richiesta(id),
   CONSTRAINT richiesta_risorse_risorsa_id_fkey FOREIGN KEY (risorsa_id) REFERENCES public.risorsa(id)
 );
+CREATE TABLE public.richiesta_parrocchia (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  parrocchia_richiedente_id uuid NOT NULL,
+  descrizione_bene text NOT NULL,
+  quantita integer NOT NULL,
+  unita_misura text DEFAULT 'pz'::text,
+  messaggio text,
+  stato text DEFAULT 'pending'::text CHECK (stato = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])),
+  parrocchia_accettante_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT richiesta_parrocchia_pkey PRIMARY KEY (id),
+  CONSTRAINT richiesta_parrocchia_parrocchia_richiedente_id_fkey FOREIGN KEY (parrocchia_richiedente_id) REFERENCES public.parrocchia(id),
+  CONSTRAINT richiesta_parrocchia_parrocchia_accettante_id_fkey FOREIGN KEY (parrocchia_accettante_id) REFERENCES public.parrocchia(id)
+);
 CREATE TABLE public.risorsa (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   nome text NOT NULL,
