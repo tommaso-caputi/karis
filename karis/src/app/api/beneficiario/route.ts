@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
-import { getUserParrocchia, validateUserId, normalizeSupabaseRelation } from "@/lib/apiHelpers";
+import { getUserParrocchia, validateUserId, validateUserIdFromBody, normalizeSupabaseRelation } from "@/lib/apiHelpers";
 
 export async function GET(request: Request) {
     if (!supabase) {
