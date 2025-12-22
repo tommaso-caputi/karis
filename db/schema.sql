@@ -85,15 +85,6 @@ CREATE TABLE public.richiesta (
   CONSTRAINT richiesta_beneficiario_id_fkey FOREIGN KEY (beneficiario_id) REFERENCES public.beneficiario(id),
   CONSTRAINT richiesta_parrocchia_id_fkey FOREIGN KEY (parrocchia_id) REFERENCES public.parrocchia(id)
 );
-CREATE TABLE public.richiesta_risorse (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  richiesta_id uuid,
-  risorsa_id uuid,
-  quantita integer NOT NULL,
-  CONSTRAINT richiesta_risorse_pkey PRIMARY KEY (id),
-  CONSTRAINT richiesta_risorse_richiesta_id_fkey FOREIGN KEY (richiesta_id) REFERENCES public.richiesta(id),
-  CONSTRAINT richiesta_risorse_risorsa_id_fkey FOREIGN KEY (risorsa_id) REFERENCES public.risorsa(id)
-);
 CREATE TABLE public.richiesta_parrocchia (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   parrocchia_richiedente_id uuid NOT NULL,
