@@ -1,0 +1,709 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{verbatim}
+
+\geometry{margin=2.5cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Documentazione Architettura KARIS},
+    pdfauthor={Tommaso Caputi, Di Pasquale Giulio, Gadaleta Giovanni}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Documentazione Architettura - KARIS}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{}
+
+\title{Documentazione Architettura e Tech Stack - KARIS}
+\author{Tommaso Caputi, Di Pasquale Giulio, Gadaleta Giovanni}
+
+% Configurazione per codice
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    showstringspaces=false,
+    extendedchars=true,
+    escapeinside={\%*}{*)},
+    inputencoding=utf8
+}
+
+\begin{document}
+
+\maketitle
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Introduzione}
+
+\textbf{KARIS} è un'applicazione web full-stack progettata per la gestione digitale delle risorse e della distribuzione di beni nelle strutture Caritas parrocchiali. Il sistema permette di gestire inventari, assegnazioni, beneficiari e facilita l'interscambio cooperativo tra diverse parrocchie.
+
+Questa documentazione descrive l'architettura tecnica del sistema, le tecnologie utilizzate, come i componenti interagiscono tra loro e presenta un caso d'uso completo con il relativo workflow.
+
+\section{Tech Stack}
+
+\subsection{Frontend}
+
+\begin{longtable}{p{4cm}p{3cm}p{8cm}}
+\toprule
+\textbf{Tecnologia} & \textbf{Versione} & \textbf{Utilizzo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Tecnologia} & \textbf{Versione} & \textbf{Utilizzo} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\textbf{Next.js} & 16.0.10 & Framework React per SSR/SSG e routing \\
+\textbf{React} & 19.2.1 & Libreria UI per componenti interattivi \\
+\textbf{TypeScript} & 5.x & Linguaggio per type safety \\
+\textbf{Tailwind CSS} & 4.x & Framework CSS utility-first \\
+\textbf{Radix UI} & Latest & Componenti UI accessibili e headless \\
+\textbf{Lucide React} & 0.561.0 & Libreria di icone \\
+\textbf{Sonner} & 2.0.7 & Sistema di notifiche toast \\
+\end{longtable}
+
+\subsection{Backend}
+
+\begin{longtable}{p{4cm}p{3cm}p{8cm}}
+\toprule
+\textbf{Tecnologia} & \textbf{Versione} & \textbf{Utilizzo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Tecnologia} & \textbf{Versione} & \textbf{Utilizzo} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\textbf{Next.js API Routes} & 16.0.10 & Endpoint REST per logica server-side \\
+\textbf{Supabase JS Client} & 2.49.1 & Client per database PostgreSQL e autenticazione \\
+\end{longtable}
+
+\subsection{Database e Infrastruttura}
+
+\begin{longtable}{p{4cm}p{11cm}}
+\toprule
+\textbf{Tecnologia} & \textbf{Utilizzo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Tecnologia} & \textbf{Utilizzo} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\textbf{PostgreSQL} & Database relazionale (gestito via Supabase) \\
+\textbf{Supabase} & BaaS (Backend as a Service) per database e auth \\
+\textbf{Supabase Auth} & Sistema di autenticazione e gestione utenti \\
+\end{longtable}
+
+\subsection{Strumenti di Sviluppo}
+
+\begin{longtable}{p{4cm}p{11cm}}
+\toprule
+\textbf{Tecnologia} & \textbf{Utilizzo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Tecnologia} & \textbf{Utilizzo} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\textbf{ESLint} & Linter per qualità del codice \\
+\textbf{PostCSS} & Processore CSS \\
+\textbf{TypeScript Compiler} & Compilazione e type checking \\
+\end{longtable}
+
+\section{Architettura del Sistema}
+
+\subsection{Architettura Generale}
+
+KARIS segue un'architettura \textbf{full-stack monolitica} basata su Next.js, che integra frontend e backend in un'unica applicazione. Il sistema utilizza il pattern \textbf{App Router} di Next.js 13+ per il routing e la gestione delle pagine.
+
+Il sistema è organizzato in più livelli:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Browser Client}: Componenti React renderizzati nel browser
+\item \textbf{Next.js App Router}: Server Components per routing e rendering
+\item \textbf{Next.js API Routes}: Endpoint REST per logica backend
+\item \textbf{Supabase Client}: Interfaccia per database e autenticazione
+\item \textbf{Supabase Cloud}: Database PostgreSQL e servizi di autenticazione
+\end{enumerate}
+
+\subsection{Pattern Architetturali}
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Server-Side Rendering (SSR)}: Le pagine vengono renderizzate sul server per migliorare SEO e performance iniziale
+\item \textbf{Client-Side Rendering (CSR)}: Componenti interattivi renderizzati lato client
+\item \textbf{API Routes}: Endpoint REST per operazioni CRUD e logica di business
+\item \textbf{Component-Based Architecture}: UI costruita con componenti React riutilizzabili
+\item \textbf{Separation of Concerns}: Separazione tra logica di presentazione, business e data access
+\end{enumerate}
+
+\section{Struttura del Progetto}
+
+La struttura del progetto è organizzata come segue:
+
+\begin{verbatim}
+karis/
++-- db/                          # Script SQL per database
+|   +-- schema.sql              # Schema completo del database
+|   +-- seed.sql                # Dati di esempio
+|
++-- documentazione/              # Documentazione del progetto
+|   +-- DOCUMENTAZIONE_DB.md
+|   +-- DOCUMENTAZIONE_ARCHITETTURA.md
+|   +-- er_schema.png
+|
++-- karis/                       # Applicazione Next.js
+    +-- src/
+    |   +-- app/                 # App Router (Next.js 13+)
+    |   |   +-- api/             # API Routes (Backend)
+    |   |   |   +-- assegnazioni/
+    |   |   |   +-- beneficiario/
+    |   |   |   +-- beni/
+    |   |   |   +-- dashboard/
+    |   |   |   +-- famiglia/
+    |   |   |   +-- inviti/
+    |   |   |   +-- richieste/
+    |   |   |   +-- user/
+    |   |   |   +-- volontari/
+    |   |   |
+    |   |   +-- beneficiario/    # Pagine per gestione beneficiari
+    |   |   +-- beni/            # Pagine per gestione beni
+    |   |   +-- dashboard/       # Dashboard principale
+    |   |   +-- famiglia/        # Pagine per gestione famiglie
+    |   |   +-- invito/          # Pagina per accettazione inviti
+    |   |   +-- login/           # Pagina di login
+    |   |   +-- richieste/       # Pagina per richieste tra parrocchie
+    |   |   +-- volontari/       # Pagina per gestione volontari
+    |   |   +-- layout.tsx       # Layout root dell'applicazione
+    |   |   +-- page.tsx         # Homepage (landing page)
+    |   |   +-- globals.css      # Stili globali
+    |   |
+    |   +-- components/          # Componenti React riutilizzabili
+    |   |   +-- ui/              # Componenti UI base (shadcn/ui)
+    |   |   |   +-- button.tsx
+    |   |   |   +-- dialog.tsx
+    |   |   |   +-- input.tsx
+    |   |   |   +-- ...
+    |   |   +-- DashboardLayout.tsx    # Layout condiviso per dashboard
+    |   |   +-- LandingPage/          # Componenti per landing page
+    |   |   +-- NotFound.tsx
+    |   |
+    |   +-- lib/                 # Utilities e helper
+    |       +-- supabaseClient.ts     # Client Supabase configurato
+    |       +-- apiHelpers.ts         # Helper per API routes
+    |       +-- utils.ts              # Utility generiche
+    |
+    +-- public/                  # File statici (immagini, favicon, etc.)
+    +-- package.json
+    +-- tsconfig.json
+    +-- next.config.ts
+    +-- tailwind.config.js
+\end{verbatim}
+
+\section{Componenti e Interazioni}
+
+\subsection{Livello 1: Componenti UI (Frontend)}
+
+\subsubsection{DashboardLayout}
+\textbf{Posizione}: \texttt{src/components/DashboardLayout.tsx}
+
+\textbf{Responsabilità}:
+\begin{itemize}
+\item Layout condiviso per tutte le pagine autenticate
+\item Sidebar di navigazione
+\item Header con informazioni utente
+\item Gestione autenticazione e logout
+\end{itemize}
+
+\textbf{Interazioni}:
+\begin{itemize}
+\item Utilizza \texttt{supabase.auth.getUser()} per verificare autenticazione
+\item Chiama \texttt{/api/user} per recuperare dati utente
+\item Gestisce navigazione tra sezioni
+\end{itemize}
+
+\subsubsection{Componenti di Pagina}
+Ogni pagina (es. \texttt{beni/page.tsx}, \texttt{beneficiario/page.tsx}) è un componente React che:
+\begin{itemize}
+\item Utilizza \texttt{DashboardLayout} come wrapper
+\item Effettua chiamate API per recuperare dati
+\item Gestisce stato locale con React hooks (\texttt{useState}, \texttt{useEffect})
+\item Mostra feedback all'utente tramite toast notifications (Sonner)
+\end{itemize}
+
+\subsection{Livello 2: API Routes (Backend)}
+
+\subsubsection{Struttura API Route}
+Ogni API route segue questo pattern:
+
+\begin{lstlisting}
+// src/app/api/[resource]/route.ts
+export async function GET(request: Request) {
+    // 1. Validazione parametri
+    // 2. Autenticazione utente
+    // 3. Recupero dati da database
+    // 4. Formattazione risposta
+    // 5. Return JSON
+}
+
+export async function POST(request: Request) {
+    // 1. Validazione body
+    // 2. Autenticazione utente
+    // 3. Validazione business logic
+    // 4. Inserimento/aggiornamento database
+    // 5. Return risultato
+}
+\end{lstlisting}
+
+\subsubsection{Helper Functions}
+\textbf{Posizione}: \texttt{src/lib/apiHelpers.ts}
+
+Funzioni riutilizzabili per API routes:
+\begin{itemize}
+\item \texttt{getUserParrocchia(userId)}: Recupera utente e parrocchia associata
+\item \texttt{validateUserId()}: Valida presenza userId nei parametri
+\item \texttt{normalizeSupabaseRelation()}: Normalizza relazioni Supabase
+\end{itemize}
+
+\subsection{Livello 3: Database Layer}
+
+\subsubsection{Supabase Client}
+\textbf{Posizione}: \texttt{src/lib/supabaseClient.ts}
+
+Configurazione del client Supabase:
+\begin{itemize}
+\item Inizializzazione con URL e API key da variabili d'ambiente
+\item Gestione errori quando Supabase non è configurato
+\item Utilizzato sia lato client che server
+\end{itemize}
+
+\subsubsection{Query Pattern}
+Le query seguono questo pattern:
+
+\begin{lstlisting}
+const { data, error } = await supabase
+    .from("tabella")
+    .select("campo1, campo2, relazione:campo_id (id, nome)")
+    .eq("campo", valore)
+    .order("created_at", { ascending: false });
+\end{lstlisting}
+
+\subsection{Flusso di Dati Completo}
+
+Il flusso di dati segue questa sequenza:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{User Action}: L'utente interagisce con il componente (click, submit)
+\item \textbf{React Component}: Gestisce lo stato e prepara la richiesta
+\item \textbf{API Call}: Chiamata \texttt{fetch('/api/...')} al server
+\item \textbf{API Route}: Validazione, autenticazione e business logic
+\item \textbf{Supabase Client}: Query builder per database
+\item \textbf{Database}: Operazioni su PostgreSQL
+\item \textbf{Response}: Ritorno dati formattati in JSON
+\item \textbf{UI Update}: Aggiornamento stato e re-render
+\end{enumerate}
+
+\section{Flusso di Autenticazione}
+
+\subsection{Login}
+
+Il processo di login segue questi passaggi:
+
+\begin{enumerate}[leftmargin=*]
+\item L'utente inserisce email e password nel form di login
+\item Il componente \texttt{/login/page.tsx} gestisce lo stato del form
+\item Chiamata a \texttt{supabase.auth.signInWithPassword()}
+\item Supabase Auth verifica le credenziali e genera un session token
+\item Il client salva la session in localStorage
+\item Redirect automatico alla dashboard
+\end{enumerate}
+
+\subsection{Verifica Autenticazione}
+
+Ogni pagina protetta verifica l'autenticazione:
+
+\begin{lstlisting}
+// Pattern comune in tutte le pagine
+useEffect(() => {
+    const checkAuth = async () => {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+            router.push("/login");
+        }
+    };
+    checkAuth();
+}, []);
+\end{lstlisting}
+
+\subsection{Recupero Dati Utente}
+
+Dopo l'autenticazione, il sistema recupera i dati dell'utente dal database:
+
+\begin{lstlisting}
+// Chiamata API
+const res = await fetch(`/api/user?userId=${user.id}`);
+const userData = await res.json();
+// userData contiene: nome, cognome, parrocchia, ruolo
+\end{lstlisting}
+
+\subsection{Autorizzazione}
+
+Le API routes verificano che l'utente abbia accesso alle risorse della propria parrocchia:
+
+\begin{lstlisting}
+// Pattern in API routes
+const userResult = await getUserParrocchia(userId);
+const parrocchiaId = userResult.data.parrocchia_id;
+
+// Filtra query per parrocchia
+query = query.eq("parrocchia_id", parrocchiaId);
+\end{lstlisting}
+
+\section{Caso d'Uso: Assegnazione di un Bene}
+
+\subsection{Scenario}
+
+Un volontario della Parrocchia di San Paolo vuole assegnare 5 scatolette di tonno a un beneficiario registrato nel sistema.
+
+\subsection{Workflow Completo}
+
+\subsubsection{Fase 1: Accesso alla Funzionalità}
+
+\begin{enumerate}[leftmargin=*]
+\item Il volontario naviga a \texttt{/beni}
+\item La pagina mostra la lista dei beni disponibili con pulsante "Assegna" per ogni bene
+\item Click su "Assegna" per il tonno
+\item Navigazione a \texttt{/beni/assegna?beneId=...}
+\item Caricamento dati iniziali (beni, beneficiari, famiglie)
+\end{enumerate}
+
+\textbf{Codice rilevante}:
+\begin{lstlisting}
+// /beni/assegna/page.tsx
+useEffect(() => {
+    const loadData = async () => {
+        // 1. Verifica autenticazione
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // 2. Carica beni disponibili
+        const beniRes = await fetch(`/api/beni?userId=${user.id}`);
+        const beni = await beniRes.json();
+        
+        // 3. Carica beneficiari
+        const beneficiariRes = await fetch(`/api/beneficiario?userId=${user.id}`);
+        const beneficiari = await beneficiariRes.json();
+        
+        // 4. Carica famiglie
+        const famiglieRes = await fetch(`/api/famiglia?userId=${user.id}&all=true`);
+        const famiglie = await famiglieRes.json();
+    };
+    loadData();
+}, []);
+\end{lstlisting}
+
+\subsubsection{Fase 2: Selezione e Compilazione Form}
+
+Il form di assegnazione richiede:
+\begin{enumerate}[leftmargin=*]
+\item Selezione Bene: Tonno (già pre-selezionato)
+\item Tipo: Beneficiario o Famiglia (utente seleziona)
+\item Beneficiario: Mario Rossi (utente seleziona)
+\item Quantità: 5 (utente inserisce)
+\item Note: (opzionale)
+\end{enumerate}
+
+\textbf{Validazione Client-Side}:
+\begin{lstlisting}
+// Verifica quantita disponibile
+const beneSelezionato = beni.find(b => b.id === formData.beneId);
+if (quantitaNum > beneSelezionato.quantity) {
+    toast.error(`Quantita non disponibile. Disponibile: ${beneSelezionato.quantity}`);
+    return;
+}
+\end{lstlisting}
+
+\subsubsection{Fase 3: Invio Richiesta}
+
+Quando l'utente clicca "Assegna Bene":
+\begin{enumerate}[leftmargin=*]
+\item Validazione del form
+\item Preparazione del payload
+\item Invio POST a \texttt{/api/assegnazioni}
+\end{enumerate}
+
+\subsubsection{Fase 4: Elaborazione Backend}
+
+L'API route \texttt{/api/assegnazioni/route.ts} (POST) esegue:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Validazione Parametri}:
+   \begin{itemize}
+   \item \texttt{risorsa\_id} presente?
+   \item \texttt{quantita} $>$ 0?
+   \item \texttt{beneficiario\_id} o \texttt{famiglia\_id} presente?
+   \end{itemize}
+
+\item \textbf{Autenticazione}:
+   \begin{itemize}
+   \item \texttt{getUserParrocchia(userId)}
+   \item Recupera \texttt{parrocchia\_id} utente
+   \end{itemize}
+
+\item \textbf{Verifica Risorsa}:
+   \begin{itemize}
+   \item Risorsa esiste?
+   \item Risorsa appartiene alla parrocchia?
+   \end{itemize}
+
+\item \textbf{Verifica Beneficiario}:
+   \begin{itemize}
+   \item Beneficiario esiste?
+   \item Beneficiario appartiene alla parrocchia?
+   \end{itemize}
+
+\item \textbf{Controllo Disponibilità}:
+   \begin{itemize}
+   \item Recupera \texttt{inventario\_parrocchia}
+   \item Calcola quantità già assegnata
+   \item Verifica: \texttt{quantita} $\leq$ disponibile
+   \end{itemize}
+
+\item \textbf{Creazione Assegnazione}:
+   \begin{itemize}
+   \item Insert in \texttt{assegnazione\_bene}
+   \item Dati: \texttt{risorsa\_id}, \texttt{beneficiario\_id}, \texttt{quantita}, \texttt{note}
+   \end{itemize}
+
+\item \textbf{Risposta}:
+   \begin{itemize}
+   \item Return JSON con assegnazione creata
+   \end{itemize}
+\end{enumerate}
+
+\textbf{Codice rilevante}:
+\begin{lstlisting}
+// /api/assegnazioni/route.ts
+export async function POST(request: Request) {
+    // 1. Parse body
+    const { risorsa_id, beneficiario_id, quantita, note } = await request.json();
+    
+    // 2. Validazione
+    if (!risorsa_id || quantita <= 0) {
+        return NextResponse.json({ error: "Parametri non validi" }, { status: 400 });
+    }
+    
+    // 3. Autenticazione e autorizzazione
+    const userResult = await getUserParrocchia(userId);
+    const parrocchiaId = userResult.data.parrocchia_id;
+    
+    // 4. Verifica risorsa appartiene alla parrocchia
+    const { data: risorsa } = await supabase
+        .from("risorsa")
+        .select("id, parrocchia_id")
+        .eq("id", risorsa_id)
+        .eq("parrocchia_id", parrocchiaId)
+        .maybeSingle();
+    
+    // 5. Controllo disponibilita
+    const { data: inventario } = await supabase
+        .from("inventario_parrocchia")
+        .select("quantita")
+        .eq("risorsa_id", risorsa_id)
+        .eq("parrocchia_id", parrocchiaId)
+        .maybeSingle();
+    
+    const quantitaAssegnata = /* calcolo da assegnazioni esistenti */;
+    const quantitaDisponibile = inventario.quantita - quantitaAssegnata;
+    
+    if (quantita > quantitaDisponibile) {
+        return NextResponse.json(
+            { error: `Quantita insufficiente. Disponibile: ${quantitaDisponibile}` },
+            { status: 400 }
+        );
+    }
+    
+    // 6. Creazione assegnazione
+    const { data: nuovaAssegnazione } = await supabase
+        .from("assegnazione_bene")
+        .insert({
+            risorsa_id,
+            beneficiario_id,
+            quantita,
+            note,
+            data_assegnazione: new Date().toISOString()
+        })
+        .select()
+        .maybeSingle();
+    
+    return NextResponse.json(nuovaAssegnazione, { status: 201 });
+}
+\end{lstlisting}
+
+\subsubsection{Fase 5: Aggiornamento UI}
+
+Dopo la risposta positiva dal server:
+\begin{enumerate}[leftmargin=*]
+\item Mostra toast di successo: "Bene assegnato!"
+\item Redirect a \texttt{/beni}
+\item Ricarica lista beni con quantità aggiornata
+\end{enumerate}
+
+\subsection{Validazioni e Controlli}
+
+\subsubsection{Client-Side}
+\begin{itemize}
+\item Form validation (campi obbligatori)
+\item Verifica quantità disponibile (basata su dati cached)
+\item Feedback immediato all'utente
+\end{itemize}
+
+\subsubsection{Server-Side}
+\begin{itemize}
+\item Autenticazione utente
+\item Autorizzazione (verifica parrocchia)
+\item Validazione business logic
+\item Controllo disponibilità reale (query database)
+\item Transazioni atomiche
+\end{itemize}
+
+\subsection{Gestione Errori}
+
+Esempi di errori gestiti:
+
+\begin{lstlisting}
+// 1. Quantita insufficiente
+if (quantita > quantitaDisponibile) {
+    return NextResponse.json(
+        { error: `Quantita insufficiente. Disponibile: ${quantitaDisponibile}` },
+        { status: 400 }
+    );
+}
+
+// 2. Risorsa non trovata
+if (!risorsa) {
+    return NextResponse.json(
+        { error: "Risorsa non trovata o non appartiene alla tua parrocchia." },
+        { status: 404 }
+    );
+}
+
+// 3. Beneficiario non trovato
+if (!beneficiario) {
+    return NextResponse.json(
+        { error: "Beneficiario non trovato o non appartiene alla tua parrocchia." },
+        { status: 404 }
+    );
+}
+\end{lstlisting}
+
+\section{Pattern e Convenzioni}
+
+\subsection{Naming Conventions}
+
+\begin{itemize}
+\item \textbf{Componenti}: PascalCase (\texttt{DashboardLayout.tsx})
+\item \textbf{File API}: lowercase (\texttt{route.ts})
+\item \textbf{Variabili}: camelCase (\texttt{userData}, \texttt{beneficiarioId})
+\item \textbf{Costanti}: UPPER\_SNAKE\_CASE (\texttt{NEXT\_PUBLIC\_SUPABASE\_URL})
+\end{itemize}
+
+\subsection{Struttura API Routes}
+
+Ogni API route esporta funzioni HTTP standard:
+\begin{itemize}
+\item \texttt{GET}: Lettura dati
+\item \texttt{POST}: Creazione risorse
+\item \texttt{PATCH}: Aggiornamento parziale
+\item \texttt{DELETE}: Eliminazione risorse
+\end{itemize}
+
+\subsection{Gestione Stato}
+
+\begin{itemize}
+\item \textbf{Client Components}: \texttt{useState} per stato locale
+\item \textbf{Server Components}: Props e fetch diretti
+\item \textbf{Global State}: Non utilizzato (preferiti fetch diretti)
+\end{itemize}
+
+\subsection{Error Handling}
+
+\begin{itemize}
+\item \textbf{API Routes}: Return \texttt{NextResponse.json(\{ error: "..." \}, \{ status: ... \})}
+\item \textbf{Client Components}: Try-catch con toast notifications
+\item \textbf{Database Errors}: Logging e messaggi user-friendly
+\end{itemize}
+
+\subsection{Type Safety}
+
+\begin{itemize}
+\item TypeScript per type checking
+\item Interfacce per dati API
+\item Type inference da Supabase queries
+\end{itemize}
+
+\subsection{Styling}
+
+\begin{itemize}
+\item Tailwind CSS utility classes
+\item Design system con variabili CSS
+\item Componenti UI riutilizzabili (shadcn/ui)
+\end{itemize}
+
+\section{Conclusioni}
+
+L'architettura di KARIS è progettata per essere:
+
+\begin{itemize}
+\item \textbf{Scalabile}: Next.js permette crescita orizzontale
+\item \textbf{Manutenibile}: Separazione chiara delle responsabilità
+\item \textbf{Type-Safe}: TypeScript end-to-end
+\item \textbf{User-Friendly}: Feedback immediato e UI moderna
+\item \textbf{Sicura}: Autenticazione e autorizzazione a ogni livello
+\end{itemize}
+
+Il sistema utilizza tecnologie moderne e consolidate, garantendo performance, sicurezza e facilità di sviluppo.
+
+\section{Riferimenti}
+
+\begin{itemize}
+\item Next.js Documentation: \url{https://nextjs.org/docs}
+\item Supabase Documentation: \url{https://supabase.com/docs}
+\item React Documentation: \url{https://react.dev}
+\item Tailwind CSS Documentation: \url{https://tailwindcss.com/docs}
+\end{itemize}
+
+\end{document}
+

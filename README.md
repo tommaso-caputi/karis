@@ -99,6 +99,24 @@ karis/
 
 ---
 
+## Documentazione dell'Architettura e Casi d'Uso
+
+Per una documentazione completa e dettagliata dell'architettura del sistema, del tech stack, dei componenti e dei casi d'uso, consultare:
+
+- **[Documentazione Architettura (Markdown)](documentazione/DOCUMENTAZIONE_ARCHITETTURA.md)**: Documentazione completa in formato Markdown
+- **[Documentazione Architettura (PDF)](documentazione/DOCUMENTAZIONE_ARCHITETTURA.pdf)**: Versione PDF della documentazione
+- **[Documentazione Architettura (LaTeX)](documentazione/DOCUMENTAZIONE_ARCHITETTURA.tex)**: Sorgente LaTeX per la documentazione
+
+La documentazione include:
+- **Tech Stack**: Tecnologie utilizzate (Next.js, React, TypeScript, Supabase, etc.)
+- **Architettura del Sistema**: Pattern architetturali e struttura generale
+- **Componenti e Interazioni**: Descrizione dettagliata dei componenti e del flusso di dati
+- **Flusso di Autenticazione**: Processo di login e gestione sessioni
+- **Casi d'Uso**: Workflow completi con esempi pratici (es. Assegnazione di un Bene)
+- **Pattern e Convenzioni**: Convenzioni di codice e best practices
+
+---
+
 ## Documentazione del Database
 
 Per una documentazione completa e dettagliata del database, consultare:
