@@ -128,7 +128,7 @@ const DashboardLayout = ({ children, title, subtitle, actions }: DashboardLayout
                     <img
                         src="/favicon.ico"
                         alt="KARIS logo"
-                        className="w-8 h-8 align-middle"
+                        className="w-16 h-16 align-middle"
                     />
                     <span className="font-display text-xl font-semibold text-foreground">
                         KARIS
