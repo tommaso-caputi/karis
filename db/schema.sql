@@ -73,18 +73,6 @@ CREATE TABLE public.parrocchia (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT parrocchia_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.richiesta (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  descrizione text,
-  foto text,
-  data_richiesta timestamp with time zone DEFAULT now(),
-  beneficiario_id uuid,
-  parrocchia_id uuid,
-  stato text DEFAULT 'in_attesa'::text CHECK (stato = ANY (ARRAY['in_attesa'::text, 'in_valutazione'::text, 'approvata'::text, 'respinta'::text])),
-  CONSTRAINT richiesta_pkey PRIMARY KEY (id),
-  CONSTRAINT richiesta_beneficiario_id_fkey FOREIGN KEY (beneficiario_id) REFERENCES public.beneficiario(id),
-  CONSTRAINT richiesta_parrocchia_id_fkey FOREIGN KEY (parrocchia_id) REFERENCES public.parrocchia(id)
-);
 CREATE TABLE public.richiesta_parrocchia (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   parrocchia_richiedente_id uuid NOT NULL,
