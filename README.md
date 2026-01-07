@@ -185,21 +185,3 @@ npm run build
 npm start
 ```
 
----
-
-## Licenza
-
-[Specificare la licenza del progetto]
-
----
-
-## Contributi
-
-[Informazioni su come contribuire al progetto]
-
----
-
-## Contatti
-
-[Informazioni di contatto del team di sviluppo]
-
