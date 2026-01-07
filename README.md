@@ -187,13 +187,6 @@ npm start
 
 ---
 
-## Riferimenti Bibliografici
-
-- Castells, M. (1996). *The Rise of the Network Society*. Blackwell Publishers.
-- Sen, A. (1999). *Development as Freedom*. Oxford University Press.
-
----
-
 ## Licenza
 
 [Specificare la licenza del progetto]
