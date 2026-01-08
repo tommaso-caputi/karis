@@ -176,7 +176,7 @@ const NuovoBene = () => {
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="Aggiungi dettagli come marca, taglia, scadenza..."
+                                    placeholder="Aggiungi dettagli come marca, taglia ..."
                                     rows={3}
                                     className="w-full px-4 py-3 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                                 />
