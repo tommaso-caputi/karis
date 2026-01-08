@@ -14,7 +14,9 @@ import {
     Shirt,
     Pill,
     Box,
-    Gift
+    Gift,
+    Calendar,
+    AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -35,6 +37,7 @@ interface Bene {
     category: Category;
     quantity: number;
     unit: string;
+    scadenza?: string | null;
 }
 
 const mapApiCategoryToCategory = (cat: string | null): Category => {
@@ -108,6 +111,7 @@ const Beni = () => {
                     category: string | null;
                     quantity: number;
                     unit: string;
+                    scadenza?: string | null;
                 }[] = await res.json();
 
                 const mapped: Bene[] = data.map((b) => ({
@@ -116,6 +120,7 @@ const Beni = () => {
                     category: mapApiCategoryToCategory(b.category),
                     quantity: b.quantity,
                     unit: b.unit,
+                    scadenza: b.scadenza || null,
                 }));
 
                 setBeni(mapped);
@@ -338,6 +343,29 @@ const Beni = () => {
 const BeneRow = ({ bene, onDelete }: { bene: Bene; onDelete: () => Promise<void> }) => {
     const Icon = categoryIcons[bene.category as keyof typeof categoryIcons] || Box;
 
+    // Funzione per calcolare lo stato della scadenza
+    const getScadenzaInfo = (scadenza: string | null | undefined) => {
+        if (!scadenza) return null;
+
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+        const dataScadenza = new Date(scadenza);
+        dataScadenza.setHours(0, 0, 0, 0);
+        
+        const diffTime = dataScadenza.getTime() - oggi.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return {
+            isExpired: diffDays < 0,
+            isExpiringSoon: diffDays >= 0 && diffDays <= 7,
+            daysUntilExpiry: diffDays,
+            formattedDate: dataScadenza.toLocaleDateString('it-IT'),
+        };
+    };
+
+    const scadenzaInfo = getScadenzaInfo(bene.scadenza);
+    const showScadenza = scadenzaInfo && (bene.category === "alimentari" || bene.category === "medicinali");
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 px-4 lg:px-6 py-4 hover:bg-secondary/30 transition-colors">
             {/* Name & Icon */}
@@ -345,17 +373,61 @@ const BeneRow = ({ bene, onDelete }: { bene: Bene; onDelete: () => Promise<void>
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                     <Icon className="w-5 h-5 text-primary" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     <div className="font-medium text-foreground truncate">{bene.name}</div>
                     <div className="text-sm text-muted-foreground lg:hidden">{categoryLabels[bene.category]}</div>
+                    {/* Scadenza su mobile */}
+                    {showScadenza && (
+                        <div className={`text-xs mt-1 flex items-center gap-1 ${
+                            scadenzaInfo.isExpired 
+                                ? "text-red-600 dark:text-red-400"
+                                : scadenzaInfo.isExpiringSoon
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-muted-foreground"
+                        }`}>
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                                {scadenzaInfo.isExpired 
+                                    ? `Scaduto ${scadenzaInfo.daysUntilExpiry} giorno${Math.abs(scadenzaInfo.daysUntilExpiry!) !== 1 ? 'i' : ''} fa`
+                                    : scadenzaInfo.isExpiringSoon
+                                    ? `Scade tra ${scadenzaInfo.daysUntilExpiry} giorno${scadenzaInfo.daysUntilExpiry !== 1 ? 'i' : ''}`
+                                    : `Scade il ${scadenzaInfo.formattedDate}`
+                                }
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Category */}
             <div className="hidden lg:flex col-span-3 items-center">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryColors[bene.category as keyof typeof categoryColors]}`}>
-                    {categoryLabels[bene.category]}
-                </span>
+                <div className="flex flex-col gap-1">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryColors[bene.category as keyof typeof categoryColors]}`}>
+                        {categoryLabels[bene.category]}
+                    </span>
+                    {/* Scadenza su desktop */}
+                    {showScadenza && (
+                        <div className={`text-xs flex items-center gap-1 px-2 ${
+                            scadenzaInfo.isExpired 
+                                ? "text-red-600 dark:text-red-400"
+                                : scadenzaInfo.isExpiringSoon
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-muted-foreground"
+                        }`}>
+                            {scadenzaInfo.isExpired && <AlertTriangle className="w-3 h-3" />}
+                            {scadenzaInfo.isExpiringSoon && !scadenzaInfo.isExpired && <AlertTriangle className="w-3 h-3" />}
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                                {scadenzaInfo.isExpired 
+                                    ? `Scaduto ${Math.abs(scadenzaInfo.daysUntilExpiry!)}g fa`
+                                    : scadenzaInfo.isExpiringSoon
+                                    ? `Scade tra ${scadenzaInfo.daysUntilExpiry}g`
+                                    : scadenzaInfo.formattedDate
+                                }
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Quantity */}

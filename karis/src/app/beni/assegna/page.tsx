@@ -7,6 +7,8 @@ import {
     Package,
     User,
     Users,
+    AlertTriangle,
+    Calendar,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useEffect, useState, Suspense } from "react";
@@ -20,6 +22,8 @@ interface Bene {
     name: string;
     quantity: number;
     unit: string;
+    scadenza?: string | null;
+    category?: string | null;
 }
 
 interface Beneficiario {
@@ -31,7 +35,37 @@ interface Beneficiario {
 interface Famiglia {
     id: string;
     cognome: string;
+    note?: string | null;
+    beneficiari?: Array<{ nome: string; cognome: string }>;
+    numBeneficiari?: number;
 }
+
+// Funzione helper per formattare il nome della famiglia in modo distinguibile
+const formattaNomeFamiglia = (famiglia: Famiglia): string => {
+    const nome = famiglia.cognome;
+    const parti: string[] = [];
+
+    // Aggiungi informazioni sui beneficiari se disponibili
+    if (famiglia.beneficiari && famiglia.beneficiari.length > 0) {
+        const nomiBeneficiari = famiglia.beneficiari.map(b => b.nome).join(", ");
+        const altri = famiglia.numBeneficiari && famiglia.numBeneficiari > famiglia.beneficiari.length 
+            ? ` (+${famiglia.numBeneficiari - famiglia.beneficiari.length} altri)` 
+            : "";
+        parti.push(`${nomiBeneficiari}${altri}`);
+    } else if (famiglia.numBeneficiari !== undefined && famiglia.numBeneficiari > 0) {
+        parti.push(`${famiglia.numBeneficiari} ${famiglia.numBeneficiari === 1 ? 'beneficiario' : 'beneficiari'}`);
+    }
+
+    // Aggiungi note se presente e non troppo lunga
+    if (famiglia.note && famiglia.note.trim().length > 0 && famiglia.note.trim().length <= 40) {
+        parti.push(famiglia.note.trim());
+    }
+
+    if (parti.length > 0) {
+        return `${nome} • ${parti.join(" • ")}`;
+    }
+    return nome;
+};
 
 const AssegnaBeneContent = () => {
     const router = useRouter();
@@ -176,6 +210,37 @@ const AssegnaBeneContent = () => {
                 return;
             }
 
+            const result = await res.json();
+            
+            // Mostra avviso sulla scadenza se presente
+            if (result.scadenza_warning) {
+                toast.warning(result.scadenza_warning, { 
+                    duration: 6000,
+                    description: "Verifica la scadenza del bene prima della distribuzione."
+                });
+            } else {
+                // Verifica anche lato client se il bene selezionato scade entro una settimana
+                if (beneSelezionato?.scadenza) {
+                    const oggi = new Date();
+                    oggi.setHours(0, 0, 0, 0);
+                    const dataScadenza = new Date(beneSelezionato.scadenza);
+                    dataScadenza.setHours(0, 0, 0, 0);
+                    
+                    const diffTime = dataScadenza.getTime() - oggi.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays >= 0 && diffDays <= 7) {
+                        toast.warning(
+                            `ATTENZIONE: Questo bene scade tra ${diffDays} giorno${diffDays !== 1 ? 'i' : ''}.`,
+                            { 
+                                duration: 6000,
+                                description: "Verifica la scadenza del bene prima della distribuzione."
+                            }
+                        );
+                    }
+                }
+            }
+            
             toast.success("Bene assegnato con successo!");
             router.push("/beni");
         } catch (error) {
@@ -187,6 +252,53 @@ const AssegnaBeneContent = () => {
     };
 
     const beneSelezionato = beni.find(b => b.id === formData.beneId);
+
+    // Funzione per verificare lo stato della scadenza
+    const getScadenzaStatus = (scadenza: string | null | undefined): { 
+        isExpired: boolean; 
+        isExpiringSoon: boolean; 
+        daysUntilExpiry: number | null;
+        message: string;
+    } => {
+        if (!scadenza) {
+            return { isExpired: false, isExpiringSoon: false, daysUntilExpiry: null, message: "" };
+        }
+
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+        const dataScadenza = new Date(scadenza);
+        dataScadenza.setHours(0, 0, 0, 0);
+        
+        const diffTime = dataScadenza.getTime() - oggi.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            return {
+                isExpired: true,
+                isExpiringSoon: false,
+                daysUntilExpiry: Math.abs(diffDays),
+                message: `⚠️ ATTENZIONE: Questo bene è scaduto da ${Math.abs(diffDays)} giorno${Math.abs(diffDays) !== 1 ? 'i' : ''}.`
+            };
+        } else if (diffDays <= 7) {
+            return {
+                isExpired: false,
+                isExpiringSoon: true,
+                daysUntilExpiry: diffDays,
+                message: `⚠️ ATTENZIONE: Questo bene scade tra ${diffDays} giorno${diffDays !== 1 ? 'i' : ''}.`
+            };
+        }
+
+        return {
+            isExpired: false,
+            isExpiringSoon: false,
+            daysUntilExpiry: diffDays,
+            message: `Scade il ${dataScadenza.toLocaleDateString('it-IT')} (tra ${diffDays} giorni)`
+        };
+    };
+
+    const scadenzaStatus = beneSelezionato?.scadenza 
+        ? getScadenzaStatus(beneSelezionato.scadenza)
+        : null;
 
     return (
         <>
@@ -235,13 +347,68 @@ const AssegnaBeneContent = () => {
                                     )}
                                 </div>
                                 {beneSelezionato && (
-                                    <div className="mt-4 p-4 bg-secondary rounded-xl">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Package className="w-4 h-4" />
-                                            <span>
-                                                Disponibile: <strong className="text-foreground">{beneSelezionato.quantity} {beneSelezionato.unit}</strong>
-                                            </span>
+                                    <div className="mt-4 space-y-3">
+                                        <div className="p-4 bg-secondary rounded-xl">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Package className="w-4 h-4" />
+                                                <span>
+                                                    Disponibile: <strong className="text-foreground">{beneSelezionato.quantity} {beneSelezionato.unit}</strong>
+                                                </span>
+                                            </div>
                                         </div>
+                                        
+                                        {/* Avviso scadenza */}
+                                        {scadenzaStatus && (() => {
+                                            const scadenzaDate = beneSelezionato.scadenza ? new Date(beneSelezionato.scadenza) : null;
+                                            const formattedDate = scadenzaDate ? scadenzaDate.toLocaleDateString('it-IT') : '';
+                                            
+                                            let containerClass = "p-4 rounded-xl border-2 ";
+                                            let iconClass = "w-5 h-5 shrink-0 mt-0.5 ";
+                                            let textClass = "text-sm font-medium ";
+                                            let dateTextClass = "text-xs ";
+                                            let dateIconClass = "w-4 h-4 ";
+                                            
+                                            if (scadenzaStatus.isExpired) {
+                                                containerClass += "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800";
+                                                iconClass += "text-red-600 dark:text-red-400";
+                                                textClass += "text-red-800 dark:text-red-200";
+                                                dateTextClass += "text-red-700 dark:text-red-300";
+                                                dateIconClass += "text-red-600 dark:text-red-400";
+                                            } else if (scadenzaStatus.isExpiringSoon) {
+                                                containerClass += "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800";
+                                                iconClass += "text-amber-600 dark:text-amber-400";
+                                                textClass += "text-amber-800 dark:text-amber-200";
+                                                dateTextClass += "text-amber-700 dark:text-amber-300";
+                                                dateIconClass += "text-amber-600 dark:text-amber-400";
+                                            } else {
+                                                containerClass += "bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-800";
+                                                iconClass += "text-blue-600 dark:text-blue-400";
+                                                textClass += "text-blue-800 dark:text-blue-200";
+                                                dateTextClass += "text-blue-700 dark:text-blue-300";
+                                                dateIconClass += "text-blue-600 dark:text-blue-400";
+                                            }
+                                            
+                                            return (
+                                                <div className={containerClass}>
+                                                    <div className="flex items-start gap-3">
+                                                        <AlertTriangle className={iconClass} />
+                                                        <div className="flex-1">
+                                                            <p className={textClass}>
+                                                                {scadenzaStatus.message}
+                                                            </p>
+                                                            {scadenzaStatus.daysUntilExpiry !== null && scadenzaDate && (
+                                                                <div className="flex items-center gap-2 mt-2">
+                                                                    <Calendar className={dateIconClass} />
+                                                                    <span className={dateTextClass}>
+                                                                        Data di scadenza: {formattedDate}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
                             </div>
@@ -329,7 +496,7 @@ const AssegnaBeneContent = () => {
                                             <option value="">Seleziona una famiglia...</option>
                                             {famiglie.map((famiglia) => (
                                                 <option key={famiglia.id} value={famiglia.id}>
-                                                    Famiglia {famiglia.cognome}
+                                                    {formattaNomeFamiglia(famiglia)}
                                                 </option>
                                             ))}
                                         </select>

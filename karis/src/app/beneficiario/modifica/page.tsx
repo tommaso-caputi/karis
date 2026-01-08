@@ -17,8 +17,37 @@ import { supabase } from "@/lib/supabaseClient";
 interface Famiglia {
     id: string;
     cognome: string;
-    note: string | null;
+    note?: string | null;
+    beneficiari?: Array<{ nome: string; cognome: string }>;
+    numBeneficiari?: number;
 }
+
+// Funzione helper per formattare il nome della famiglia in modo distinguibile
+const formattaNomeFamiglia = (famiglia: Famiglia): string => {
+    const nome = famiglia.cognome;
+    const parti: string[] = [];
+
+    // Aggiungi informazioni sui beneficiari se disponibili
+    if (famiglia.beneficiari && famiglia.beneficiari.length > 0) {
+        const nomiBeneficiari = famiglia.beneficiari.map(b => b.nome).join(", ");
+        const altri = famiglia.numBeneficiari && famiglia.numBeneficiari > famiglia.beneficiari.length 
+            ? ` (+${famiglia.numBeneficiari - famiglia.beneficiari.length} altri)` 
+            : "";
+        parti.push(`${nomiBeneficiari}${altri}`);
+    } else if (famiglia.numBeneficiari !== undefined && famiglia.numBeneficiari > 0) {
+        parti.push(`${famiglia.numBeneficiari} ${famiglia.numBeneficiari === 1 ? 'beneficiario' : 'beneficiari'}`);
+    }
+
+    // Aggiungi note se presente e non troppo lunga
+    if (famiglia.note && famiglia.note.trim().length > 0 && famiglia.note.trim().length <= 40) {
+        parti.push(famiglia.note.trim());
+    }
+
+    if (parti.length > 0) {
+        return `${nome} • ${parti.join(" • ")}`;
+    }
+    return nome;
+};
 
 const ModificaBeneficiarioContent = () => {
     const router = useRouter();
@@ -364,7 +393,7 @@ const ModificaBeneficiarioContent = () => {
                                             <option value="">Nessuna famiglia</option>
                                             {famiglie.map((famiglia) => (
                                                 <option key={famiglia.id} value={famiglia.id}>
-                                                    {famiglia.cognome}
+                                                    {formattaNomeFamiglia(famiglia)}
                                                 </option>
                                             ))}
                                         </select>
