@@ -205,7 +205,7 @@ export async function POST(request: Request) {
     // 2. Verifica che la risorsa esista e appartenga alla parrocchia
     const { data: risorsa, error: risorsaError } = await supabase
         .from("risorsa")
-        .select("id, parrocchia_id")
+        .select("id, parrocchia_id, scadenza, categoria:categoria_risorsa (nome)")
         .eq("id", risorsa_id)
         .eq("parrocchia_id", parrocchiaId)
         .maybeSingle();
@@ -216,6 +216,29 @@ export async function POST(request: Request) {
             { error: "Risorsa non trovata o non appartiene alla tua parrocchia." },
             { status: 404 }
         );
+    }
+
+    // Verifica scadenza e prepara avviso se necessario
+    let scadenzaWarning: string | null = null;
+    const risorsaNormalized = normalizeSupabaseRelation(risorsa);
+    const categoria = normalizeSupabaseRelation(risorsaNormalized?.categoria);
+    const categoriaNome = categoria?.nome?.toLowerCase() || "";
+    const isAlimentareOrMedicinale = categoriaNome.includes("aliment") || categoriaNome.includes("medic");
+
+    if (isAlimentareOrMedicinale && risorsaNormalized?.scadenza) {
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+        const dataScadenza = new Date(risorsaNormalized.scadenza);
+        dataScadenza.setHours(0, 0, 0, 0);
+        
+        const diffTime = dataScadenza.getTime() - oggi.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            scadenzaWarning = `ATTENZIONE: Questo bene è scaduto da ${Math.abs(diffDays)} giorno${Math.abs(diffDays) !== 1 ? 'i' : ''}.`;
+        } else if (diffDays <= 7) {
+            scadenzaWarning = `ATTENZIONE: Questo bene scade tra ${diffDays} giorno${diffDays !== 1 ? 'i' : ''}.`;
+        }
     }
 
     // 3. Verifica che il beneficiario esista e appartenga alla parrocchia (se specificato)
@@ -342,18 +365,30 @@ export async function POST(request: Request) {
         );
     }
 
-    return NextResponse.json(
-        {
-            id: nuovaAssegnazione.id,
-            risorsa_id: nuovaAssegnazione.risorsa_id,
-            beneficiario_id: nuovaAssegnazione.beneficiario_id,
-            famiglia_id: nuovaAssegnazione.famiglia_id,
-            quantita: nuovaAssegnazione.quantita,
-            data_assegnazione: nuovaAssegnazione.data_assegnazione,
-            note: nuovaAssegnazione.note,
-        },
-        { status: 201 }
-    );
+    const response: {
+        id: string;
+        risorsa_id: string;
+        beneficiario_id: string | null;
+        famiglia_id: string | null;
+        quantita: number;
+        data_assegnazione: string;
+        note: string | null;
+        scadenza_warning?: string | null;
+    } = {
+        id: nuovaAssegnazione.id,
+        risorsa_id: nuovaAssegnazione.risorsa_id,
+        beneficiario_id: nuovaAssegnazione.beneficiario_id,
+        famiglia_id: nuovaAssegnazione.famiglia_id,
+        quantita: nuovaAssegnazione.quantita,
+        data_assegnazione: nuovaAssegnazione.data_assegnazione,
+        note: nuovaAssegnazione.note,
+    };
+
+    if (scadenzaWarning) {
+        response.scadenza_warning = scadenzaWarning;
+    }
+
+    return NextResponse.json(response, { status: 201 });
 }
 
 export async function DELETE(request: Request) {

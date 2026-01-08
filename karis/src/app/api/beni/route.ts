@@ -10,6 +10,7 @@ interface BeneApiResponse {
     quantity: number;
     unit: string;
     updated_at: string | null;
+    scadenza?: string | null;
     /**
      * Soglia indicativa per considerare il bene "a scorta bassa".
      * Al momento è un valore fisso lato applicazione, in attesa di un campo dedicato in DB.
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
                 nome,
                 descrizione,
                 unita_misura,
+                scadenza,
                 categoria:categoria_risorsa (
                     nome
                 )
@@ -100,6 +102,7 @@ export async function GET(request: Request) {
             quantity: quantitaDisponibile, // Mostra solo la quantità disponibile
             unit: risorsa.unita_misura ?? "pz",
             updated_at: row.updated_at ?? null,
+            scadenza: risorsa.scadenza ?? null,
             threshold: DEFAULT_THRESHOLD,
         } as BeneApiResponse;
     });
@@ -122,6 +125,7 @@ export async function POST(request: Request) {
         quantity?: number;
         unit?: string;
         description?: string | null;
+        scadenza?: string | null;
     };
 
     try {
@@ -133,7 +137,7 @@ export async function POST(request: Request) {
         );
     }
 
-    const { name, category, quantity, unit, description } = body;
+    const { name, category, quantity, unit, description, scadenza } = body;
 
     if (!name || !category || typeof quantity !== "number" || Number.isNaN(quantity)) {
         return NextResponse.json(
@@ -192,15 +196,29 @@ export async function POST(request: Request) {
     }
 
     // 3. Creazione della risorsa
+    const risorsaData: {
+        nome: string;
+        descrizione: string | null;
+        unita_misura: string;
+        categoria_id: string;
+        parrocchia_id: string;
+        scadenza?: string | null;
+    } = {
+        nome: name,
+        descrizione: description ?? null,
+        unita_misura: unit ?? "pz",
+        categoria_id: categoriaId,
+        parrocchia_id: parrocchiaId,
+    };
+
+    // Aggiungi scadenza solo se fornita
+    if (scadenza) {
+        risorsaData.scadenza = scadenza;
+    }
+
     const { data: nuovaRisorsa, error: risorsaInsertError } = await supabase
         .from("risorsa")
-        .insert({
-            nome: name,
-            descrizione: description ?? null,
-            unita_misura: unit ?? "pz",
-            categoria_id: categoriaId,
-            parrocchia_id: parrocchiaId,
-        })
+        .insert(risorsaData)
         .select("id")
         .maybeSingle();
 
@@ -262,6 +280,7 @@ export async function PUT(request: Request) {
         quantity?: number;
         unit?: string;
         description?: string | null;
+        scadenza?: string | null;
     };
 
     try {
@@ -273,7 +292,7 @@ export async function PUT(request: Request) {
         );
     }
 
-    const { id, name, category, quantity, unit, description } = body;
+    const { id, name, category, quantity, unit, description, scadenza } = body;
 
     if (!id || !name || !category || typeof quantity !== "number" || Number.isNaN(quantity)) {
         return NextResponse.json(
@@ -332,14 +351,27 @@ export async function PUT(request: Request) {
     }
 
     // 3. Aggiornamento della risorsa (verificando che appartenga alla stessa parrocchia)
+    const risorsaUpdateData: {
+        nome: string;
+        descrizione: string | null;
+        unita_misura: string;
+        categoria_id: string;
+        scadenza?: string | null;
+    } = {
+        nome: name,
+        descrizione: description ?? null,
+        unita_misura: unit ?? "pz",
+        categoria_id: categoriaId,
+    };
+
+    // Aggiorna scadenza (può essere null per rimuoverla)
+    if (scadenza !== undefined) {
+        risorsaUpdateData.scadenza = scadenza || null;
+    }
+
     const { error: risorsaUpdateError } = await supabase
         .from("risorsa")
-        .update({
-            nome: name,
-            descrizione: description ?? null,
-            unita_misura: unit ?? "pz",
-            categoria_id: categoriaId,
-        })
+        .update(risorsaUpdateData)
         .eq("id", id)
         .eq("parrocchia_id", parrocchiaId);
 

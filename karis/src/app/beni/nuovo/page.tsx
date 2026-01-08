@@ -34,6 +34,7 @@ const NuovoBene = () => {
         quantity: "",
         unit: "pezzi",
         description: "",
+        scadenza: "",
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -75,6 +76,7 @@ const NuovoBene = () => {
                     quantity: Number(formData.quantity),
                     unit: formData.unit,
                     description: formData.description || null,
+                    scadenza: formData.scadenza || null,
                 }),
             });
 
@@ -180,6 +182,29 @@ const NuovoBene = () => {
                                 />
                             </div>
                         </div>
+
+                        {/* Scadenza (solo per alimentari e medicinali) */}
+                        {(formData.category === "alimentari" || formData.category === "medicinali") && (
+                            <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+                                <h3 className="font-display text-lg font-semibold text-foreground mb-4">
+                                    Scadenza
+                                </h3>
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">
+                                        Data di scadenza (opzionale)
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.scadenza}
+                                        onChange={(e) => setFormData({ ...formData, scadenza: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    />
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Inserisci la data di scadenza per ricevere avvisi quando il bene scade o è in scadenza.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Quantity & Unit */}
                         <div className="bg-card rounded-2xl border border-border p-6 space-y-4">

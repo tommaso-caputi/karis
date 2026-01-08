@@ -38,6 +38,7 @@ const ModificaBeneContent = () => {
         quantity: "",
         unit: "pezzi",
         description: "",
+        scadenza: "",
     });
 
     useEffect(() => {
@@ -82,6 +83,7 @@ const ModificaBeneContent = () => {
                     category: string | null;
                     quantity: number;
                     unit: string;
+                    scadenza?: string | null;
                 }[] = await res.json();
 
                 const bene = data.find((b) => b.id === beneId);
@@ -98,12 +100,22 @@ const ModificaBeneContent = () => {
                 else if (categoriaNorm.includes("abbigl")) category = "abbigliamento";
                 else if (categoriaNorm.includes("medic")) category = "medicinali";
 
+                // Formatta la data di scadenza per l'input date (YYYY-MM-DD)
+                let scadenzaFormatted = "";
+                if (bene.scadenza) {
+                    const scadenzaDate = new Date(bene.scadenza);
+                    if (!isNaN(scadenzaDate.getTime())) {
+                        scadenzaFormatted = scadenzaDate.toISOString().split('T')[0];
+                    }
+                }
+
                 setFormData({
                     name: bene.name,
                     category,
                     quantity: String(bene.quantity),
                     unit: bene.unit || "pezzi",
                     description: bene.description ?? "",
+                    scadenza: scadenzaFormatted,
                 });
             } catch (error) {
                 console.error("Errore nel caricamento del bene da modificare:", error);
@@ -162,6 +174,7 @@ const ModificaBeneContent = () => {
                     quantity: Number(formData.quantity),
                     unit: formData.unit,
                     description: formData.description || null,
+                    scadenza: formData.scadenza || null,
                 }),
             });
 
@@ -267,10 +280,33 @@ const ModificaBeneContent = () => {
                                         rows={3}
                                         className="w-full px-4 py-3 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                                     />
+                            </div>
+                        </div>
+
+                        {/* Scadenza (solo per alimentari e medicinali) */}
+                        {(formData.category === "alimentari" || formData.category === "medicinali") && (
+                            <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+                                <h3 className="font-display text-lg font-semibold text-foreground mb-4">
+                                    Scadenza
+                                </h3>
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">
+                                        Data di scadenza (opzionale)
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.scadenza}
+                                        onChange={(e) => setFormData({ ...formData, scadenza: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    />
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Inserisci la data di scadenza per ricevere avvisi quando il bene scade o è in scadenza.
+                                    </p>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Quantity & Unit */}
+                        {/* Quantity & Unit */}
                             <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
                                 <h3 className="font-display text-lg font-semibold text-foreground mb-4">
                                     Quantità e Soglie

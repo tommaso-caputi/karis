@@ -95,6 +95,7 @@ CREATE TABLE public.risorsa (
   unita_misura text DEFAULT 'pz'::text,
   parrocchia_id uuid,
   categoria_id uuid,
+  scadenza date,
   CONSTRAINT risorsa_pkey PRIMARY KEY (id),
   CONSTRAINT risorsa_parrocchia_id_fkey FOREIGN KEY (parrocchia_id) REFERENCES public.parrocchia(id),
   CONSTRAINT risorsa_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categoria_risorsa(id)
