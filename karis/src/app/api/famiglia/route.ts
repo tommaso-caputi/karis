@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     const parrocchiaId = userResult.data.parrocchia_id;
 
     // Se all=true, recupera tutte le famiglie (anche senza beneficiari)
+    // ma includiamo comunque informazioni sui beneficiari per distinguerle meglio
     if (all === "true") {
         // Recupera tutte le famiglie senza filtrare per beneficiari
         // Questo include anche le famiglie senza beneficiari associati
@@ -39,7 +40,53 @@ export async function GET(request: Request) {
             );
         }
 
-        return NextResponse.json(famiglie ?? []);
+        // Recupera i beneficiari per ogni famiglia per distinguerle meglio
+        const famigliaIds = (famiglie ?? []).map((f: any) => f.id);
+        
+        let beneficiariPerFamiglia: Map<string, Array<{ nome: string; cognome: string }>> = new Map();
+        let conteggioBeneficiariPerFamiglia: Map<string, number> = new Map();
+        
+        if (famigliaIds.length > 0) {
+            // Recupera i primi 3 beneficiari per famiglia (per mostrare i nomi)
+            const { data: beneficiari, error: beneficiariError } = await supabase
+                .from("beneficiario")
+                .select("nome, cognome, famiglia_id")
+                .in("famiglia_id", famigliaIds)
+                .neq("nome", "_FAMIGLIA_PLACEHOLDER_");
+
+            if (!beneficiariError && beneficiari) {
+                // Raggruppa per famiglia e prendi i primi 3
+                const beneficiariPerFamigliaMap = new Map<string, Array<{ nome: string; cognome: string }>>();
+                beneficiari.forEach((b: any) => {
+                    if (b.famiglia_id) {
+                        if (!beneficiariPerFamigliaMap.has(b.famiglia_id)) {
+                            beneficiariPerFamigliaMap.set(b.famiglia_id, []);
+                        }
+                        const lista = beneficiariPerFamigliaMap.get(b.famiglia_id);
+                        if (lista && lista.length < 3) {
+                            lista.push({ nome: b.nome, cognome: b.cognome });
+                        }
+                        // Conta tutti i beneficiari
+                        const count = conteggioBeneficiariPerFamiglia.get(b.famiglia_id) || 0;
+                        conteggioBeneficiariPerFamiglia.set(b.famiglia_id, count + 1);
+                    }
+                });
+                beneficiariPerFamiglia = beneficiariPerFamigliaMap;
+            }
+        }
+
+        // Arricchisci le famiglie con informazioni sui beneficiari
+        const famiglieArricchite = (famiglie ?? []).map((f: any) => {
+            const beneficiari = beneficiariPerFamiglia.get(f.id) || [];
+            const numBeneficiari = conteggioBeneficiariPerFamiglia.get(f.id) || 0;
+            return {
+                ...f,
+                beneficiari: beneficiari,
+                numBeneficiari: numBeneficiari,
+            };
+        });
+
+        return NextResponse.json(famiglieArricchite);
     }
 
     // Comportamento originale: recupera famiglie con beneficiari raggruppati
