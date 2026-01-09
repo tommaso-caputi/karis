@@ -63,7 +63,7 @@ Questa documentazione descrive l'architettura tecnica del sistema, le tecnologie
 
 ### Architettura Generale
 
-KARIS segue un'architettura **full-stack monolitica** basata su Next.js, che integra frontend e backend in un'unica applicazione. Il sistema utilizza il pattern **App Router** di Next.js 13+ per il routing e la gestione delle pagine.
+KARIS segue un'architettura **full-stack** basata su Next.js, che integra frontend e backend in un'unica applicazione. Il sistema utilizza il pattern **App Router** di Next.js 13+ per il routing e la gestione delle pagine.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
