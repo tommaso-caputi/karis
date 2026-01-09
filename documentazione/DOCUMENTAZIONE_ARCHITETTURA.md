@@ -113,7 +113,6 @@ KARIS segue un'architettura **full-stack** basata su Next.js, che integra fronte
 2. **Client-Side Rendering (CSR)**: Componenti interattivi renderizzati lato client
 3. **API Routes**: Endpoint REST per operazioni CRUD e logica di business
 4. **Component-Based Architecture**: UI costruita con componenti React riutilizzabili
-5. **Separation of Concerns**: Separazione tra logica di presentazione, business e data access
 
 ---
 
