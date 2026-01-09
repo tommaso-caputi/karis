@@ -383,11 +383,38 @@ export async function PUT(request: Request) {
         );
     }
 
-    // 4. Aggiornamento della quantità in inventario_parrocchia
+    // 4. Calcola la quantità totale considerando le assegnazioni esistenti
+    // La quantità ricevuta è la quantità disponibile, quindi dobbiamo aggiungere le assegnazioni
+    const { data: assegnazioniEsistenti, error: assegnazioniError } = await supabase
+        .from("assegnazione_bene")
+        .select("quantita")
+        .eq("risorsa_id", id);
+
+    if (assegnazioniError) {
+        console.error("Errore nel recupero delle assegnazioni esistenti (PUT):", assegnazioniError);
+        return NextResponse.json(
+            { error: "Errore nel recupero delle assegnazioni esistenti." },
+            { status: 500 }
+        );
+    }
+
+    const quantitaAssegnata = (assegnazioniEsistenti ?? []).reduce((sum: number, a: any) => sum + (a.quantita ?? 0), 0);
+    
+    // Validazione: la quantità disponibile non può essere negativa
+    if (quantity < 0) {
+        return NextResponse.json(
+            { error: "La quantità non può essere negativa." },
+            { status: 400 }
+        );
+    }
+    
+    const quantitaTotale = quantity + quantitaAssegnata;
+
+    // 5. Aggiornamento della quantità in inventario_parrocchia
     const { error: inventarioUpdateError } = await supabase
         .from("inventario_parrocchia")
         .update({
-            quantita: quantity,
+            quantita: quantitaTotale,
         })
         .eq("risorsa_id", id)
         .eq("parrocchia_id", parrocchiaId);
