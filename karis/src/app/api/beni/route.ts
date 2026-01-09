@@ -460,29 +460,7 @@ export async function DELETE(request: Request) {
         );
     }
 
-    // 3. Verifica se ci sono assegnazioni associate alla risorsa
-    const { data: assegnazioni, error: assegnazioniError } = await supabase
-        .from("assegnazione_bene")
-        .select("id")
-        .eq("risorsa_id", id)
-        .limit(1);
-
-    if (assegnazioniError) {
-        console.error("Errore nel controllo delle assegnazioni:", assegnazioniError);
-        return NextResponse.json(
-            { error: "Errore nel controllo delle dipendenze." },
-            { status: 500 }
-        );
-    }
-
-    if (assegnazioni && assegnazioni.length > 0) {
-        return NextResponse.json(
-            { error: "Impossibile eliminare il bene: ci sono assegnazioni associate." },
-            { status: 409 }
-        );
-    }
-
-    // 4. Eliminazione dalla tabella inventario_parrocchia
+    // 3. Eliminazione dalla tabella inventario_parrocchia
     const { error: inventarioDeleteError } = await supabase
         .from("inventario_parrocchia")
         .delete()
@@ -497,7 +475,7 @@ export async function DELETE(request: Request) {
         );
     }
 
-    // 5. Eliminazione della risorsa
+    // 4. Eliminazione della risorsa
     const { error: risorsaDeleteError } = await supabase
         .from("risorsa")
         .delete()
