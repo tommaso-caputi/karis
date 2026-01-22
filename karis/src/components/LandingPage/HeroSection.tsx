@@ -34,7 +34,7 @@ const HeroSection = () => {
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-up animation-delay-300">
                         <Button variant="default" size="lg" asChild>
-                            <Link href="/dashboard">
+                            <Link href="/login">
                                 Inizia ora
                                 <ArrowRight className="w-5 h-5" />
                             </Link>
